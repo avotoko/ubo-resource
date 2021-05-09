@@ -1,0 +1,66 @@
+/*
+	name:  uBOXSR
+	description: avotoko's uBlock Origin Experimental Scriptlets Resource
+	author: avotoko
+	homepage: https://github.com/avotoko/ubo-resource
+	install: add this file url to 'userResourcesLocation' in 'advanced settings'
+*/
+"use strict";
+
+/// avotoko-promise-patch.js
+(function() {
+	function log(){
+		console.log.apply(console,["[avotoko-promise-patch]"].concat(Array.from(arguments)));
+	}
+	log("start on", location.href);
+	// parameters: +js(avotoko-promise-patch, <invoke>, <value>, <pattern>)
+	let invoke = '{{1}}', value = '{{2}}', pattern = '{{3}}', isRegExp;
+	if (! ["resolve", "reject", "print"].includes(invoke)){
+		log("parameter error: wrong invoke:", invoke);
+		return;
+	}
+	if (invoke !== "print"){
+		if  (! value || value === '{{2}}'){
+			log("parameter error: wrong value:", invoke);
+			return;
+		}
+		try {
+			value = JSON.parse(value);
+		}
+		catch (e){
+			log("parameter error: wrong value:", e.type+":", e.message);
+			return;
+		}
+	}
+	pattern === '{{3}}' && (pattern = "");
+	if (pattern.startsWith("/") && pattern.endsWith("/")){
+		isRegExp = true;
+		try {
+			pattern = new RegExp(pattern.slice(1, -1));
+		}
+		catch (e){
+			log("parameter error: wrong pattern:", e.type+":", e.message);
+			return;
+		}
+	}
+	let obj = window, prop = "Promise";
+	obj[prop] = new Proxy(obj[prop], {
+		construct: function(target, args, newTarget){
+			const executor = "" + args[0], 
+				match = isRegExp ? pattern.test(executor) : executor.includes(pattern);
+			if (match){
+				if (invoke === "resolve"){
+					return new target((resolve,reject)=>{setTimeout(resolve, 1, value)});
+				}
+				else if (invoke === "reject"){
+					return new target((resolve,reject)=>{setTimeout(reject, 1, value)});
+				}
+				else if (invoke === "print"){
+					log(executor);
+				}
+			}
+			return Reflect.construct(target, args, newTarget);
+		}
+	});
+})();
+
