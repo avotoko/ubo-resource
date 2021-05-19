@@ -7,60 +7,160 @@
 */
 "use strict";
 
-/// avotoko-promise-patch.js
+/// avotoko-fake-promise.js
+/// avotoko-fp.js
+/// alias avotoko-promise-patch.js
 (function() {
 	function log(){
-		console.log.apply(console,["[avotoko-promise-patch]"].concat(Array.from(arguments)));
+		console.log.apply(console,["[avotoko-fake-promise]"].concat(Array.from(arguments)));
+	}
+	function parseOpts(args){
+		let opts = {};
+		for (let idx = 0 ; idx < args.length ; idx++){
+			let a = args[idx], i= a.indexOf(":"), name = a.substring(0, i).trim(), val = a.substring(i+1).trim();
+			val = /^\d+$/.test(val) ? val * 1 : NaN;
+			if (! ["debug","log","st"].includes(name) || isNaN(val)){ log("error: wrong option:", a); return}
+			opts[name] = val;
+		}
+		return opts;
+	}
+	function parsePattern(s){
+		let m, flag = "";
+		if (! s){ return /(?:)/; }
+		if (m = s.match(/^\/(.*)\/(\w*)$/)){
+			s = m[1], flag = m[2];
+		}
+		else {
+			s = s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+		}
+		if (s){
+			try { s = new RegExp(s, flag); }
+			catch (e){ log("RegExp error:", e.message, ":", s); return; }
+		}
+		return s;
 	}
 	log("start on", location.href);
-	// parameters: +js(avotoko-promise-patch, <invoke>, <value>, <pattern>)
-	let invoke = '{{1}}', value = '{{2}}', pattern = '{{3}}', isRegExp;
-	if (! ["resolve", "reject", "print"].includes(invoke)){
-		log("parameter error: wrong invoke:", invoke);
-		return;
-	}
-	if (invoke !== "print"){
-		if  (! value || value === '{{2}}'){
-			log("parameter error: wrong value:", invoke);
-			return;
-		}
-		try {
-			value = JSON.parse(value);
-		}
-		catch (e){
-			log("parameter error: wrong value:", e.type+":", e.message);
-			return;
-		}
-	}
-	pattern === '{{3}}' && (pattern = "");
-	if (pattern.startsWith("/") && pattern.endsWith("/")){
-		isRegExp = true;
-		try {
-			pattern = new RegExp(pattern.slice(1, -1));
-		}
-		catch (e){
-			log("parameter error: wrong pattern:", e.type+":", e.message);
-			return;
-		}
-	}
+	let arg = (function(){
+		let a = []; a.push("{{1}}"), a.push("{{2}}"), a.push("{{3}}"), a.push("{{4}}"), a.push("{{5}}"), 
+		a.push("{{6}}"), a.push("{{7}}"), a.push("{{8}}"), a.push("{{9}}"), a.push("{{10}}"), a.push("{{11}}");
+		for (let i = 0 ; i < a.length ; i++){ if (a[i] === "{{" + (i+1) + "}}"){ a.splice(i); break; } }
+		return a;
+	})();
+	log("arg:", arg);
+	// parameters: <invoke type>, <value>, <executor pattern>, <stack trace pattern>, <option>...
+	let invoke = arg[0], val = arg[1], execPattern = arg[2], stPattern = arg[3], opts = parseOpts(arg.slice(4));
+	if (! opts){ return; }
+	log("options:", opts);
+	if (! ["resolve", "reject"].includes(invoke)){ log("error: wrong invoke type:", invoke); return; }
+	try { val = JSON.parse(val) } catch(e){ log("error: wrong value:", e.message, ":", val); return; }
+	opts.debug && log("value:", val);
+	if (! execPattern){ log("error: executor pattern required"); return; }
+	if (! (execPattern = parsePattern(execPattern))){ return; }
+	opts.debug && log("executor pattern:", execPattern);
+	if (! (stPattern = parsePattern(stPattern))){ return; }
+	opts.debug && log("stack trace pattern:", stPattern);
 	let obj = window, prop = "Promise";
 	obj[prop] = new Proxy(obj[prop], {
 		construct: function(target, args, newTarget){
-			const executor = "" + args[0], 
-				match = isRegExp ? pattern.test(executor) : executor.includes(pattern);
+			const executor = "" + args[0], st = Error().stack.split("\n").slice(1).join("\n"),
+				match = execPattern.test(executor) && stPattern.test(st);
 			if (match){
+				log("faked", invoke, val, "aganst", executor);
 				if (invoke === "resolve"){
-					return new target((resolve,reject)=>{setTimeout(resolve, 1, value)});
+					return new target((resolve,reject)=>{setTimeout(resolve, 1, val)});
 				}
-				else if (invoke === "reject"){
-					return new target((resolve,reject)=>{setTimeout(reject, 1, value)});
+				else {
+					return new target((resolve,reject)=>{setTimeout(reject, 1, val)});
 				}
-				else if (invoke === "print"){
-					log(executor);
-				}
+			}
+			else {
+				opts.log && log(executor + (opts.st > 0 ? "\n" + st.split("\n").map(e=>"  "+e).slice(0, opts.st).join("\n") : ""));
 			}
 			return Reflect.construct(target, args, newTarget);
 		}
 	});
+	log("monitoring");
 })();
 
+/// avotoko-on-handler-defuser.js
+/// alias avotoko-ohd.js
+(function() {
+	function log(){
+		console.log.apply(console,["[avotoko-on-handler-defuser]"].concat(Array.from(arguments)));
+	}
+	function parseOpts(args){
+		let opts = {};
+		for (let idx = 0 ; idx < args.length ; idx++){
+			let a = args[idx], i= a.indexOf(":"), name = a.substring(0, i).trim(), val = a.substring(i+1).trim();
+			val = /^\d+$/.test(val) ? val * 1 : NaN;
+			if (! ["debug","log","st"].includes(name) || isNaN(val)){ log("error: wrong option:", a); return}
+			opts[name] = val;
+		}
+		return opts;
+	}
+	function parsePattern(s){
+		let m, flag = "";
+		if (! s){ return /(?:)/; }
+		if (m = s.match(/^\/(.*)\/(\w*)$/)){
+			s = m[1], flag = m[2];
+		}
+		else {
+			s = s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+		}
+		if (s){
+			try { s = new RegExp(s, flag); }
+			catch (e){ log("RegExp error:", e.message, ":", s); return; }
+		}
+		return s;
+	}
+	log("start on", location.href);
+	let arg = (function(){
+		let a = []; a.push("{{1}}"), a.push("{{2}}"), a.push("{{3}}"), a.push("{{4}}"), a.push("{{5}}"), 
+		a.push("{{6}}"), a.push("{{7}}"), a.push("{{8}}"), a.push("{{9}}"), a.push("{{10}}"),
+		a.push("{{11}}"), a.push("{{12}}"), a.push("{{13}}"), a.push("{{14}}"), a.push("{{15}}");
+		for (let i = 0 ; i < a.length ; i++){ if (a[i] === "{{" + (i+1) + "}}"){ a.splice(i); break; } }
+		return a;
+	})();
+	//arg = ['body', "copy|selectstart|contextmenu", 'return !1', 'debugger', 'debug:1', 'log:1', 'st:10'];
+	log("arg:", arg);
+	// param: <selector>, <event list>, <function pattern>, <stack trace pattern>, <option>...)
+	let sel = arg[0], event = arg[1], fnPattern = arg[2], stPattern = arg[3], opts = parseOpts(arg.slice(4));
+	if (! opts){ return; }
+	log("options:", opts);
+	if (! sel){ log("error: selector required"); return; }
+	if (! event){ log("error: event required"); return; }
+	event = (function(){ return event.split("|").map(e=>e.trim()).filter(e=>e); })();
+	if (event.length === 0){ log("error: event name not listed"); return; }
+	opts.debug && log("event list", event);
+	if (! (fnPattern = parsePattern(fnPattern))){ return; }
+	opts.debug && log("function pattern", fnPattern);
+	if (! (stPattern = parsePattern(stPattern))){ return; }
+	opts.debug && log("stack pattern", stPattern);
+	let obj = HTMLElement.prototype;
+	event.forEach(name=>{
+		let prop = "on" + name;
+		let desc = Object.getOwnPropertyDescriptor(obj, prop);
+		if (! desc || ! desc.get || ! desc.set){ log("error:", prop, "descriptor get/set not found"); return; }
+		if (! desc.configurable){ log("error:", prop, "descriptor is not configurable"); return; }
+		Object.defineProperty(obj, prop, {
+			get(){
+				return desc.get.call(this);
+			},
+			set(v){
+				let fnText = "" + v,
+					st = Error().stack.split("\n").slice(1).join("\n"),
+					match = fnPattern.test(fnText) && stPattern.test(st);
+				if (match){
+					log("defused", this, prop, fnText);
+				}
+				else {
+					opts.log && log(this, prop, fnText  + (opts.st > 0 ? "\n" + st.split("\n").map(e=>"  "+e).slice(0, opts.st).join("\n") : ""));
+					desc.set.call(this, v);
+				}
+			},
+			enumerable: true,
+			configurable: true,
+		});
+	});
+	log("monitoring");
+})();
