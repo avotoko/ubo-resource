@@ -10,8 +10,7 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ```
 ! https://www.reddit.com/r/uBlockOrigin/comments/n71ene/this_website_can_detect_that_i_am_using/
 ! https://thehouseofportable.com/download/?id=351&k=6
-! [May 19 2021] not work
-thehouseofportable.com##+js(avotoko-fake-promise, resolve, false, $('.btdiv'))
+thehouseofportable.com##+js(avotoko-fake-promise, resolve, false, 'on/favicon')
 
 ! https://github.com/uBlockOrigin/uAssets/issues/7320
 ! https://www.joysound.com/web/search/song/746956
