@@ -164,3 +164,137 @@
 	});
 	log("monitoring");
 })();
+
+/// avotoko-fake-element-property.js
+/// alias avotoko-fep.js
+(function() {
+	function log(){
+		console.log.apply(console,["[avotoko-fake-element-property]"].concat(Array.from(arguments)));
+	}
+	function parseOpts(args){
+		let opts = {};
+		for (let idx = 0 ; idx < args.length ; idx++){
+			let a = args[idx], i= a.indexOf(":"), name = a.substring(0, i).trim(), val = a.substring(i+1).trim();
+			val = /^\d+$/.test(val) ? val * 1 : NaN;
+			if (! ["debug","log","st"].includes(name) || isNaN(val)){ log("error: wrong option:", a); return}
+			opts[name] = val;
+		}
+		return opts;
+	}
+	function parsePattern(s){
+		let m, flag = "";
+		if (! s){ return /(?:)/; }
+		if (m = s.match(/^\/(.*)\/(\w*)$/)){
+			s = m[1], flag = m[2];
+		}
+		else {
+			s = s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+		}
+		if (s){
+			try { s = new RegExp(s, flag); }
+			catch (e){ log("RegExp error:", e.message, ":", s); return; }
+		}
+		return s;
+	}
+	function parseProps(args){
+		let props = {}, more = [];
+		for (let i = 0 ; i < args.length ; i++){
+			let a = args[i], idx = a.indexOf(":"), key, val;
+			if (idx === -1){
+				more = args.slice(a === "eova" ? i + 1 : i);
+				break;
+			}
+			key = a.substring(0, idx).trim(), val = a.substring(idx + 1).trim();
+			if (! key){ log("error: empty property name:", a); return {}; }
+			if (props.hasOwnProperty(key)){ log("error: multiple defined property name:", a); return {}; }
+			if (val = val || void 0){
+				try { val = JSON.parse(val) } catch(e){ log("error: wrong value:", e.message, ":", val); return {}; }
+			}
+			props[key] = val;
+		}
+		return {props, more};
+	}
+	function findPropertyDescriptor(obj, prop, opts){
+		function getObjName(obj){
+			return obj.hasOwnProperty("constructor") ? obj.constructor.name + " Prototype" : obj.name || obj.constructor.name;
+		}
+		let depth = 0;
+		opts = opts || {};
+		opts.debug && log("searching for a descriptor of", prop);
+		if (! prop){ opts.debug && log(depth, ":", "no property name"); return; }
+		while (obj){
+			opts.debug && log(depth, ":", getObjName(obj));
+			if (obj.hasOwnProperty(prop)){
+				let desc = Object.getOwnPropertyDescriptor(obj, prop);
+				opts.debug && log("descriptor", desc);
+				return desc;
+			}
+			obj = obj.prototype || Object.getPrototypeOf(obj);
+			depth++;
+		}
+		opts.debug && log(depth,":","descriptor not found");
+	}
+	function derived(obj, from){
+		while (obj){
+			if (obj === from){ return true; }
+			obj = Object.getPrototypeOf(obj);
+		}
+	}
+	log("start on", location.href);
+	let arg = (function(){
+		let a = []; a.push("{{1}}"), a.push("{{2}}"), a.push("{{3}}"), a.push("{{4}}"), a.push("{{5}}"), 
+		a.push("{{6}}"), a.push("{{7}}"), a.push("{{8}}"), a.push("{{9}}"), a.push("{{10}}"),
+		a.push("{{11}}"), a.push("{{12}}"), a.push("{{13}}"), a.push("{{14}}"), a.push("{{15}}");
+		for (let i = 0 ; i < a.length ; i++){ if (a[i] === "{{" + (i+1) + "}}"){ a.splice(i); break; } }
+		return a;
+	})();
+	//arg = ['body', 'innerHTML:"<br />"', '', 'debugger', 'debug:1', 'log:1', 'st:10'];
+	log("arg:", arg);
+	// param: <selector>, <property>,,, <dom i/f>, <stack trace pattern>, <option>...)
+	let sel = arg[0], {props, more} = parseProps(arg.slice(1));
+	if (! sel){ log("error: selector required"); return; }
+	if (! props){ return; }
+	log("props:", props, "more:", more);
+	let domif = more[0] || "HTMLElement", stPattern = more[1], opts = parseOpts(more.slice(2));
+	if (! opts){ return; }
+	log("options:", opts);
+	opts.debug && log("properties:", props);
+	opts.debug && log("dom i/f:", domif);
+	if (! window[domif]){ log("error:", domif, "is not defined"); return; }
+	if (! derived(window[domif],  HTMLElement)){ log("error:", domif, "is not derived from HTMLElement"); return; }
+	if (! (stPattern = parsePattern(stPattern))){ return; }
+	opts.debug && log("stack trace pattern:", stPattern);
+	let obj = window[domif].prototype;
+	Object.keys(props).forEach(prop=>{
+		let _val,
+			val = props[prop], 
+			des = findPropertyDescriptor(obj, prop, opts) || {};
+		if (des.hasOwnProperty("configurable") && ! des.configurable){ log("error:", prop, "is not configurable"); return; }
+		Object.defineProperty(obj, prop, {
+			get(){
+				let v = des.get ? des.get.call(this) : des.hasOwnProperty("value") ? des.value : _val;
+				try {
+					if (this.matches(sel)){
+						let st = Error().stack.split("\n").slice(1).join("\n"),
+							match = stPattern.test(st);
+						if (match){
+							log("faked get", this, prop, v, "as", val);
+							return val;
+						}
+						else {
+							opts.log && log("get", this, prop, v  + (opts.st > 0 ? "\n" + st.split("\n").map(e=>"  "+e).slice(0, opts.st).join("\n") : ""));
+						}
+					}
+				}
+				catch (e){ log(e.type || "error", ":", e.message, ":", sel) }; 
+				return v;
+			},
+			set(v){
+				des.set ? des.set.call(this, v) : des.hasOwnProperty("value") ? (des.value = v) : (_val = v);
+			},
+			enumerable: true,
+			configurable: true,
+		});
+	});
+	log("monitoring");
+})();
