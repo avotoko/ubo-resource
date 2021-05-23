@@ -39,6 +39,10 @@
 		}
 		return s;
 	}
+	function makeSt(){
+		let ua = navigator.userAgent, i = ua.includes("Chrome") ? 3 : ua.includes("Firefox")  ? 2 : 2;
+		return Error().stack.split("\n").slice(i).join("\n");
+	}
 	log("start on", location.href);
 	let arg = (function(){
 		let a = []; a.push("{{1}}"), a.push("{{2}}"), a.push("{{3}}"), a.push("{{4}}"), a.push("{{5}}"), 
@@ -62,7 +66,7 @@
 	let obj = window, prop = "Promise";
 	obj[prop] = new Proxy(obj[prop], {
 		construct: function(target, args, newTarget){
-			const executor = "" + args[0], st = Error().stack.split("\n").slice(1).join("\n"),
+			const executor = "" + args[0], st = makeSt(),
 				match = execPattern.test(executor) && stPattern.test(st);
 			if (match){
 				log("faked", invoke, val, "aganst", executor);
@@ -113,6 +117,30 @@
 		}
 		return s;
 	}
+	function makeSt(){
+		let ua = navigator.userAgent, i = ua.includes("Chrome") ? 3 : ua.includes("Firefox")  ? 2 : 2;
+		return Error().stack.split("\n").slice(i).join("\n");
+	}
+	function findPropertyDescriptor(obj, prop, opts){
+		function getObjName(obj){
+			return obj.hasOwnProperty("constructor") ? obj.constructor.name + " Prototype" : obj.name || obj.constructor.name;
+		}
+		let depth = 0;
+		opts = opts || {};
+		opts.debug && log("searching for a descriptor of", prop);
+		if (! prop){ opts.debug && log(depth, ":", "no property name"); return; }
+		while (obj){
+			opts.debug && log(depth, ":", getObjName(obj));
+			if (obj.hasOwnProperty(prop)){
+				let des = Object.getOwnPropertyDescriptor(obj, prop);
+				opts.debug && log("descriptor", des);
+				return des;
+			}
+			obj = obj.prototype || Object.getPrototypeOf(obj);
+			depth++;
+		}
+		opts.debug && log(depth,":","descriptor not found");
+	}
 	log("start on", location.href);
 	let arg = (function(){
 		let a = []; a.push("{{1}}"), a.push("{{2}}"), a.push("{{3}}"), a.push("{{4}}"), a.push("{{5}}"), 
@@ -121,9 +149,9 @@
 		for (let i = 0 ; i < a.length ; i++){ if (a[i] === "{{" + (i+1) + "}}"){ a.splice(i); break; } }
 		return a;
 	})();
-	//arg = ['body', "copy|selectstart|contextmenu", 'return !1', 'debugger', 'debug:1', 'log:1', 'st:10'];
+	//arg = ['body', "copy|selectstart|contextmenu", 'return!1', 'debugger', 'debug:1', 'log:1', 'st:10'];
 	log("arg:", arg);
-	// param: <selector>, <event list>, <function pattern>, <stack trace pattern>, <option>...)
+	// param: <window|document|selector>, <event list>, <function pattern>, <stack trace pattern>, <option>...)
 	let sel = arg[0], event = arg[1], fnPattern = arg[2], stPattern = arg[3], opts = parseOpts(arg.slice(4));
 	if (! opts){ return; }
 	log("options:", opts);
@@ -136,26 +164,26 @@
 	opts.debug && log("function pattern", fnPattern);
 	if (! (stPattern = parsePattern(stPattern))){ return; }
 	opts.debug && log("stack pattern", stPattern);
-	let obj = HTMLElement.prototype;
+	let obj = sel === "window" ? window : sel === "document" ? Document.prototype : HTMLElement.prototype;
 	event.forEach(name=>{
 		let prop = "on" + name;
-		let desc = Object.getOwnPropertyDescriptor(obj, prop);
-		if (! desc || ! desc.get || ! desc.set){ log("error:", prop, "descriptor get/set not found"); return; }
-		if (! desc.configurable){ log("error:", prop, "descriptor is not configurable"); return; }
+		let des = findPropertyDescriptor(obj, prop, opts);
+		if (! des || ! des.get || ! des.set){ log("error:", prop, "descriptor get/set not found"); return; }
+		if (! des.configurable){ log("error:", prop, "descriptor is not configurable"); return; }
 		Object.defineProperty(obj, prop, {
 			get(){
-				return desc.get.call(this);
+				return des.get.call(this);
 			},
 			set(v){
 				let fnText = "" + v,
-					st = Error().stack.split("\n").slice(1).join("\n"),
-					match = fnPattern.test(fnText) && stPattern.test(st);
+					st = makeSt(),
+					match = (! this.matches || this.matches(sel)) && fnPattern.test(fnText) && stPattern.test(st);
 				if (match){
 					log("defused", this, prop, fnText);
 				}
 				else {
 					opts.log && log(this, prop, fnText  + (opts.st > 0 ? "\n" + st.split("\n").map(e=>"  "+e).slice(0, opts.st).join("\n") : ""));
-					desc.set.call(this, v);
+					des.set.call(this, v);
 				}
 			},
 			enumerable: true,
@@ -196,6 +224,10 @@
 		}
 		return s;
 	}
+	function makeSt(){
+		let ua = navigator.userAgent, i = ua.includes("Chrome") ? 3 : ua.includes("Firefox")  ? 2 : 2;
+		return Error().stack.split("\n").slice(i).join("\n");
+	}
 	function parseProps(args){
 		let props = {}, more = [];
 		for (let i = 0 ; i < args.length ; i++){
@@ -225,9 +257,9 @@
 		while (obj){
 			opts.debug && log(depth, ":", getObjName(obj));
 			if (obj.hasOwnProperty(prop)){
-				let desc = Object.getOwnPropertyDescriptor(obj, prop);
-				opts.debug && log("descriptor", desc);
-				return desc;
+				let des = Object.getOwnPropertyDescriptor(obj, prop);
+				opts.debug && log("descriptor", des);
+				return des;
 			}
 			obj = obj.prototype || Object.getPrototypeOf(obj);
 			depth++;
@@ -275,7 +307,7 @@
 				let v = des.get ? des.get.call(this) : des.hasOwnProperty("value") ? des.value : _val;
 				try {
 					if (this.matches(sel)){
-						let st = Error().stack.split("\n").slice(1).join("\n"),
+						let st = makeSt(),
 							match = stPattern.test(st);
 						if (match){
 							log("faked get", this, prop, v, "as", val);
@@ -295,6 +327,299 @@
 			enumerable: true,
 			configurable: true,
 		});
+	});
+	log("monitoring");
+})();
+
+/// avotoko-fake-gettime-speed.js
+/// alias avotoko-fgts.js
+(function() {
+	function log(){
+		console.log.apply(console,["[avotoko-fake-gettime-speed]"].concat(Array.from(arguments)));
+	}
+	function parseOpts(args){
+		let opts = {};
+		for (let idx = 0 ; idx < args.length ; idx++){
+			let a = args[idx], i= a.indexOf(":"), name = a.substring(0, i).trim(), val = a.substring(i+1).trim();
+			val = /^\d+$/.test(val) ? val * 1 : NaN;
+			if (! ["debug","log","st"].includes(name) || isNaN(val)){ log("error: wrong option:", a); return}
+			opts[name] = val;
+		}
+		return opts;
+	}
+	function parsePattern(s){
+		let m, flag = "";
+		if (! s){ return /(?:)/; }
+		if (m = s.match(/^\/(.*)\/(\w*)$/)){
+			s = m[1], flag = m[2];
+		}
+		else {
+			s = s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+		}
+		if (s){
+			try { s = new RegExp(s, flag); }
+			catch (e){ log("RegExp error:", e.message, ":", s); return; }
+		}
+		return s;
+	}
+	function makeSt(){
+		let ua = navigator.userAgent, i = ua.includes("Chrome") ? 3 : ua.includes("Firefox")  ? 2 : 2;
+		return Error().stack.split("\n").slice(i).join("\n");
+	}
+	log("start on", location.href);
+	let arg = (function(){
+		let a = []; a.push("{{1}}"), a.push("{{2}}"), a.push("{{3}}"), a.push("{{4}}"), a.push("{{5}}"), 
+		a.push("{{6}}"), a.push("{{7}}"), a.push("{{8}}"), a.push("{{9}}"), a.push("{{10}}"),
+		a.push("{{11}}"), a.push("{{12}}"), a.push("{{13}}"), a.push("{{14}}"), a.push("{{15}}");
+		for (let i = 0 ; i < a.length ; i++){ if (a[i] === "{{" + (i+1) + "}}"){ a.splice(i); break; } }
+		return a;
+	})();
+	//arg = ['1000', 'debugger', 'debug:1', 'log:1', 'st:10'];
+	log("arg:", arg);
+	// param: <magnification>, <stack trace pattern>, <option>...)
+	let mag = arg[0], stPattern = arg[1], opts = parseOpts(arg.slice(2));
+	if (! opts){ return; }
+	log("options:", opts);
+	if (isNaN(mag = mag * 1)){ log("error: wrong magnification"); return; }
+	if (! (stPattern = parsePattern(stPattern))){ return; }
+	opts.debug && log("stack trace pattern:", stPattern);
+	let obj = Date.prototype, prop = "getTime", start = 0;
+	obj[prop] = new Proxy(obj[prop], {
+		apply: function(target, thisArg, args) {
+			let st = makeSt(),
+				match = stPattern.test(st),
+				val = Reflect.apply(target, thisArg, args);
+			if (match){
+				start === 0 && (start = val);
+				val = start + Math.ceil((val - start) * mag);
+				val < 0 && (val = 0);
+				log("faked", prop, "as", val);
+				return val;
+			}
+			else {
+				opts.log && log(prop, "as", val, (opts.st > 0 ? "\n" + st.split("\n").map(e=>"  "+e).slice(0, opts.st).join("\n") : " "));
+			}
+			return val;
+		}
+	});
+	console.log("monitoring");
+})();
+
+/// avotoko-fake-queryselector-argument.js
+/// alias avotoko-fqsa.js
+(function() {
+	function log(){
+		console.log.apply(console,["[avotoko-fake-queryselector-argument]"].concat(Array.from(arguments)));
+	}
+	function parseOpts(args){
+		let opts = {};
+		for (let idx = 0 ; idx < args.length ; idx++){
+			let a = args[idx], i= a.indexOf(":"), name = a.substring(0, i).trim(), val = a.substring(i+1).trim();
+			val = /^\d+$/.test(val) ? val * 1 : NaN;
+			if (! ["debug","log","st"].includes(name) || isNaN(val)){ log("error: wrong option:", a); return}
+			opts[name] = val;
+		}
+		return opts;
+	}
+	function parsePattern(s){
+		let m, flag = "";
+		if (! s){ return /(?:)/; }
+		if (m = s.match(/^\/(.*)\/(\w*)$/)){
+			s = m[1], flag = m[2];
+		}
+		else {
+			s = s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+		}
+		if (s){
+			try { s = new RegExp(s, flag); }
+			catch (e){ log("RegExp error:", e.message, ":", s); return; }
+		}
+		return s;
+	}
+	function makeSt(){
+		let ua = navigator.userAgent, i = ua.includes("Chrome") ? 3 : ua.includes("Firefox")  ? 2 : 2;
+		return Error().stack.split("\n").slice(i).join("\n");
+	}
+	log("start on", location.href);
+	let arg = (function(){
+		let a = []; a.push("{{1}}"), a.push("{{2}}"), a.push("{{3}}"), a.push("{{4}}"), a.push("{{5}}"), 
+		a.push("{{6}}"), a.push("{{7}}"), a.push("{{8}}"), a.push("{{9}}"), a.push("{{10}}"),
+		a.push("{{11}}"), a.push("{{12}}"), a.push("{{13}}"), a.push("{{14}}"), a.push("{{15}}");
+		for (let i = 0 ; i < a.length ; i++){ if (a[i] === "{{" + (i+1) + "}}"){ a.splice(i); break; } }
+		return a;
+	})();
+	// arg = ['document', "querySelector", 'div', 'body', 'debugger', 'debug:1', 'log:1', 'st:10'];
+	log("arg:", arg);
+	// param: <document|selector>, <method list>, <argument pattern>, <net argument>, <stack trace pattern>, <option>...)
+	let sel = arg[0], props = arg[1], argPattern = arg[2], newArg = arg[3], stPattern = arg[4], opts = parseOpts(arg.slice(5)), method = {querySelector:!0, querySelectorAll:!0};
+	if (! opts){ return; }
+	log("options:", opts);
+	if (! sel){ log("error: document or selector required"); return; }
+	if (! props){ log("error: method list required"); return; }
+	props = props.split("|").map(e=>e.trim()).filter(e=>!!e);
+	if (props.length === 0){ log("error: method required"); return; }
+	if (props.some(e=>! method[e])){ log("error: wrong method. support", Object.keys(method).join(", ")); return; }
+	opts.debug && log("method list", props);
+	if (! (argPattern = parsePattern(argPattern))){ return; }
+	opts.debug && log("argument pattern", argPattern);
+	if (! newArg){ log("error: new argument required"); return; }
+	opts.debug && log("new argument", newArg);
+	if (! (stPattern = parsePattern(stPattern))){ return; }
+	opts.debug && log("stack pattern", stPattern);
+	let obj = sel === "document" ? document : HTMLElement.prototype;
+	props.forEach(prop=>{
+		obj[prop] = new Proxy(obj[prop], {
+			apply: function(target, thisArg, args) {
+				try {
+					if (thisArg === document || thisArg.matches(sel)){
+						let argSel = args[0],
+							st = makeSt(),
+							match = argPattern.test(argSel) && stPattern.test(st);
+						if (match){
+							log("faked", thisArg, prop, argSel, "as", newArg);
+							args[0] = newArg;
+						}
+						else {
+							opts.log && log(thisArg, prop, argSel + (opts.st > 0 ? "\n" + st.split("\n").map(e=>"  "+e).slice(0, opts.st).join("\n") : ""));
+						}
+					}
+				}
+				catch(e){ log(e.type, e.message, ":", sel); }
+				return Reflect.apply(target, thisArg, args);
+			}
+		});
+	});
+	log("monitoring");
+})();
+
+/// avotoko-fake-computed-style.js
+/// alias avotoko-fcs.js
+(function() {
+	function log(){
+		console.log.apply(console,["[avotoko-fake-computed-style]"].concat(Array.from(arguments)));
+	}
+	function parseOpts(args){
+		let opts = {};
+		for (let idx = 0 ; idx < args.length ; idx++){
+			let a = args[idx], i= a.indexOf(":"), name = a.substring(0, i).trim(), val = a.substring(i+1).trim();
+			val = /^\d+$/.test(val) ? val * 1 : NaN;
+			if (! ["debug","log","st"].includes(name) || isNaN(val)){ log("error: wrong option:", a); return}
+			opts[name] = val;
+		}
+		return opts;
+	}
+	function parsePattern(s){
+		let m, flag = "";
+		if (! s){ return /(?:)/; }
+		if (m = s.match(/^\/(.*)\/(\w*)$/)){
+			s = m[1], flag = m[2];
+		}
+		else {
+			s = s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+		}
+		if (s){
+			try { s = new RegExp(s, flag); }
+			catch (e){ log("RegExp error:", e.message, ":", s); return; }
+		}
+		return s;
+	}
+	function makeSt(){
+		let ua = navigator.userAgent, i = ua.includes("Chrome") ? 3 : ua.includes("Firefox")  ? 2 : 2;
+		return Error().stack.split("\n").slice(i).join("\n");
+	}
+	function parseCssText(cssText){
+		let o = {}, n = 0;
+		try {
+			cssText.split(";").forEach(decl=>{
+				if (decl.trim()){
+					let i = decl.indexOf(":"), p = decl.substring(0, i).trim(), v = decl.substring(i+1).trim();
+					if (! (p && v)){ throw Error("wrong css declaration: " + decl); }
+					o[p] = v, n++;
+				}
+			});
+		}
+		catch (e){ log("error:", e.message); return; }
+		if (n === 0){ log("error: css has no declaration"); return; }
+		return o;
+	}
+	log("start on", location.href);
+	let arg = (function(){
+		let a = []; a.push("{{1}}"), a.push("{{2}}"), a.push("{{3}}"), a.push("{{4}}"), a.push("{{5}}"), 
+		a.push("{{6}}"), a.push("{{7}}"), a.push("{{8}}"), a.push("{{9}}"), a.push("{{10}}"), a.push("{{11}}");
+		for (let i = 0 ; i < a.length ; i++){ if (a[i] === "{{" + (i+1) + "}}"){ a.splice(i); break; } }
+		return a;
+	})();
+	// arg = ['body', ,"display:none; height:1px;", 'debugger', 'debug:1', 'log:1', 'st:10'];
+	log("arg:", arg);
+	// param: <selector>, <pseudo-element pattern>, <css>, <stack trace pattern>, <opt>,,,)
+	let sel = arg[0], pePattern = arg[1], css = arg[2], stPattern = arg[3], opts = parseOpts(arg.slice(4));
+	if (! opts){ return; }
+	log("options:", opts);
+	if (! sel){ log("error: selector required"); return; }
+	if (! (pePattern = parsePattern(pePattern))){ return; }
+	opts.debug && log("pseudo-element pattern:", pePattern);
+	if (! (css = parseCssText(css))){ return; }
+	opts.debug && log("css:", css);
+	if (! (stPattern = parsePattern(stPattern))){ return; }
+	opts.debug && log("stack trace pattern:", stPattern);
+	let obj = window , prop = "getComputedStyle";
+	obj[prop] = new Proxy(obj[prop], {
+		apply: function(target, thisArg, args) {
+			let e = args[0], pe/* pseudo-element */ = args[1], cs = Reflect.apply(target, thisArg, args),
+				st = makeSt();
+			if (cs){
+				try {
+					if (e.matches(sel) && pePattern.test(pe)){
+						opts.log && log("got target", e, " " + (opts.st > 0 ? "\n" + st.split("\n").map(e=>"  "+e).slice(0, opts.st).join("\n") : ""));
+						let obj = cs, prop = "getPropertyValue";
+						obj[prop] = new Proxy(obj[prop], {
+							apply: function(target, thisArg, args) {
+								let property = args[0], v = Reflect.apply(target, thisArg, args);
+								if (css.hasOwnProperty(property)){
+									let st = makeSt(),
+										match = stPattern.test(st);
+									if (match){
+										log("faked getPropertyValue", e, property, v, "as", css[property]);
+										return css[property];
+									}
+									else {
+										opts.log && log("getPropertyValue", e, property, v  + (opts.st > 0 ? "\n" + st.split("\n").map(e=>"  "+e).slice(0, opts.st).join("\n") : ""));
+									}
+								}
+								return v;
+							}
+						});
+						let proto = Object.getPrototypeOf(cs);
+						Object.keys(css).forEach(property=>{
+							let val = css[property], 
+								{get, set} = Object.getOwnPropertyDescriptor(proto, property) || {},
+								des = Object.getOwnPropertyDescriptor(obj, property);
+							if (! get){ log("error:", property, "descriptor get() not found"); return; }
+							if (des){ log("error:", property, "descriptor already defined"); return; }
+							Object.defineProperty(obj, property, {
+								get(){
+									let st = makeSt(),
+										match = stPattern.test(st),
+										v = get.call(this);
+									if (match){
+										log("faked get", e, property, v, "as", val);
+										return val;
+									}
+									else {
+										opts.log && log("get", e, property, v  + (opts.st > 0 ? "\n" + st.split("\n").map(e=>"  "+e).slice(0, opts.st).join("\n") : ""));
+									}
+									return v;
+								},
+								enumerable: true,
+								configurable: true,
+							});
+						});
+					}
+				}
+				catch(e){ log(e.type, e.message); }
+			}
+			return cs;
+		}
 	});
 	log("monitoring");
 })();
