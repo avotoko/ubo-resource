@@ -11,6 +11,12 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! https://github.com/uBlockOrigin/uAssets/issues/8489
 ! https://forum.release-apk.com/viewforum.php?f=41
 ! Jume 1 2021 update
+! fix firefox issue
+!#if env_firefox
+forum.release-apk.com#@#+js(aopw, document.onload)
+forum.release-apk.com#@#^script:has-text(/'load'|document.onload/)
+forum.release-apk.com##+js(acis, jQuery, 'load')
+!#endif
 ! hide ad space
 forum.release-apk.com##ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"])
 ! bypass iframe checking
