@@ -10,7 +10,7 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ```
 ! https://github.com/uBlockOrigin/uAssets/issues/8489
 ! https://forum.release-apk.com/viewforum.php?f=41
-! Jume 1 2021 update: At this time, the topic cannot be displayed .
+! Jume 1 2021 update: At this time, the topic cannot be displayed on chrome.
 ! hide ad space
 forum.release-apk.com##ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"])
 ! bypass iframe checking
