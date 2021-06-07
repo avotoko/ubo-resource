@@ -623,3 +623,146 @@
 	});
 	log("monitoring");
 })();
+
+/// avotoko-fake-object-property.js
+/// alias avotoko-fop.js
+(function() {
+	function log(){
+		console.log.apply(console,["[avotoko-fake-object-property]"].concat(Array.from(arguments)));
+	}
+	function parseOpts(args){
+		let opts = {};
+		for (let idx = 0 ; idx < args.length ; idx++){
+			let a = args[idx], i= a.indexOf(":"), name = a.substring(0, i).trim(), val = a.substring(i+1).trim();
+			val = /^\d+$/.test(val) ? val * 1 : NaN;
+			if (! ["debug","log","st"].includes(name) || isNaN(val)){ log("error: wrong option:", a); return}
+			opts[name] = val;
+		}
+		return opts;
+	}
+	function parsePattern(s){
+		let m, flag = "";
+		if (! s){ return /(?:)/; }
+		if (m = s.match(/^\/(.*)\/(\w*)$/)){
+			s = m[1], flag = m[2];
+		}
+		else {
+			s = s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+		}
+		if (s){
+			try { s = new RegExp(s, flag); }
+			catch (e){ log("RegExp error:", e.message, ":", s); return; }
+		}
+		return s;
+	}
+	function makeSt(){
+		let ua = navigator.userAgent, i = ua.includes("Chrome") ? 3 : ua.includes("Firefox")  ? 2 : 2;
+		return Error().stack.split("\n").slice(i).join("\n");
+	}
+	function parseProps(args){
+		let props = {}, more = [];
+		for (let i = 0 ; i < args.length ; i++){
+			let a = args[i], idx = a.indexOf(":"), key, val;
+			if (idx === -1){
+				more = args.slice(a === "eova" ? i + 1 : i);
+				break;
+			}
+			key = a.substring(0, idx).trim(), val = a.substring(idx + 1).trim();
+			if (! key){ log("error: empty property name:", a); return {}; }
+			if (props.hasOwnProperty(key)){ log("error: multiple defined property name:", a); return {}; }
+			if (val = val || void 0){
+				try { val = JSON.parse(val) } catch(e){ log("error: wrong value:", e.message, ":", val); return {}; }
+			}
+			props[key] = val;
+		}
+		return {props, more};
+	}
+	function findPropertyDescriptor(obj, prop, opts){
+		function getObjName(obj){
+			return obj.hasOwnProperty("constructor") ? obj.constructor.name + " Prototype" : obj.name || obj.constructor.name;
+		}
+		let depth = 0;
+		opts = opts || {};
+		opts.debug && console.log("searching for a descriptor of", prop);
+		if (! prop){ opts.debug && console.log(depth, ":", "no property name"); return; }
+		while (obj){
+			opts.debug && console.log(depth, ":", getObjName(obj));
+			if (obj.hasOwnProperty(prop)){
+				let des = Object.getOwnPropertyDescriptor(obj, prop);
+				opts.debug && console.log("descriptor", des);
+				return des;
+			}
+			obj = obj.prototype || Object.getPrototypeOf(obj);
+			depth++;
+		}
+		opts.debug && console.log(depth,":","descriptor not found");
+	}
+	function parseChain(chain){
+		let prop = [], s = chain, m;
+		if (! (m = s.match(/^(\w+)(.*)/))){ log("error: chain must start with identifier"); return; }
+		m[1] !== "window" && prop.push("window");
+		prop.push(m[1]), s = m[2];
+		while (s){
+			if (! (m = s.match(/(\.(\w+)|\['(.+)'\]|\["(.+)"\])(.*)/))){ log("error: wrong property"); return; }
+			prop.push(m[2] || m[3] || m[4]), s = m[5];
+		}
+		if (prop.length === 1){ log("error: chain has no property"); return; }
+		return prop;
+	}
+	log("start on", location.href);
+	let arg = (function(){
+		let a = []; a.push("{{1}}"), a.push("{{2}}"), a.push("{{3}}"), a.push("{{4}}"), a.push("{{5}}"), 
+		a.push("{{6}}"), a.push("{{7}}"), a.push("{{8}}"), a.push("{{9}}"), a.push("{{10}}"),
+		a.push("{{11}}"), a.push("{{12}}"), a.push("{{13}}"), a.push("{{14}}"), a.push("{{15}}");
+		for (let i = 0 ; i < a.length ; i++){ if (a[i] === "{{" + (i+1) + "}}"){ a.splice(i); break; } }
+		return a;
+	})();
+	// arg = ['setTimeout', 'toString:"function(){[native code]}"', 'debugger', 'debug:1', 'log:1', 'st:10'];
+	log("arg:", arg);
+	// param: <object>, <property>..., <stack trace pattern>, <option>...)
+	let chain = arg[0], {props, more} = parseProps(arg.slice(1));
+	if (! props){ return; }
+	log("props:", props, "more:", more);
+	let stPattern = more[0], opts = parseOpts(more.slice(1));
+	if (! opts){ return; }
+	log("options:", opts);
+	if (! (chain = parseChain(chain))){ return; }
+	opts.debug && log("object:", chain);
+	opts.debug && log("properties:", props);
+	if (! (stPattern = parsePattern(stPattern))){ return; }
+	opts.debug && log("stack trace pattern:", stPattern);
+	let obj = window;
+	for (let i = 1 ; i < chain.length ; i++){
+		try {
+			obj = obj[chain[i]];
+			if (! obj){ log("error:", chain.slice(0,i+1).join("."), "not defined"); return; }
+		} catch(e){ log(e.type || "error", ":", e.message, ":", chain.slice(0,i+1).join(".")); return; }
+	}
+	opts.debug && console.log("object:", obj);
+	Object.keys(props).forEach(prop=>{
+		let _val,
+			val = props[prop], fval = function(){ return props[prop]; };
+			des = findPropertyDescriptor(obj, prop, opts) || {};
+		if (des.hasOwnProperty("configurable") && ! des.configurable){ log("error:", prop, "is not configurable"); return; }
+		Object.defineProperty(obj, prop, {
+			get(){
+				let v = des.get ? des.get.call(this) : des.hasOwnProperty("value") ? des.value : _val;
+				let st = makeSt(), match = stPattern.test(st);
+				if (match){
+					log("faked get", this, prop, v, "as", val);
+					return typeof v === "function" ? fval : val;
+				}
+				else {
+					opts.log && log("get", this, prop, v  + (opts.st > 0 ? "\n" + st.split("\n").map(e=>"  "+e).slice(0, opts.st).join("\n") : ""));
+				}
+				return v;
+			},
+			set(v){
+				des.set ? des.set.call(this, v) : des.hasOwnProperty("value") ? (des.value = v) : (_val = v);
+			},
+			enumerable: true,
+			configurable: true,
+		});
+	});
+	console.log("monitoring");
+})();
