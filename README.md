@@ -39,8 +39,18 @@ techssting.com##+js(avotoko-fake-element-property, .adsbygoogle, outerHTML:"<ins
 
 ! https://www.reddit.com/r/uBlockOrigin/comments/n71ene/this_website_can_detect_that_i_am_using/
 ! https://thehouseofportable.com/download/?id=351&k=6
-! May 19 2021
+! June 7 2021 update
+! Bypass the anti-adblock.
 thehouseofportable.com##+js(avotoko-fake-promise, resolve, false, 'on/favicon')
+! Increase the speed of generating links.
+thehouseofportable.com##+js(avotoko-fake-object-property, setTimeout, hasOwnProperty: false)
+thehouseofportable.com##+js(avotoko-fake-object-property, setTimeout, toString: "function(){[native code]}")
+thehouseofportable.com##+js(nano-stb,, 1000)
+thehouseofportable.com##+js(nano-stb,, 2000)
+thehouseofportable.com##+js(nano-stb,, 3000)
+thehouseofportable.com##+js(nano-stb,, 4000)
+thehouseofportable.com##+js(nano-stb,, 5000)
+thehouseofportable.com##+js(nano-stb,, 6000)
 
 ! https://github.com/uBlockOrigin/uAssets/issues/7320
 ! https://www.joysound.com/web/search/song/746956
