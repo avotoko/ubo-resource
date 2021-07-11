@@ -24,7 +24,7 @@ forum.release-apk.com#@#+js(remove-attr, style, ins, complete)
 forum.release-apk.com##ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"])
 ! bypass iframe checking
 forum.release-apk.com##+js(avotoko-fake-queryselector-argument, document, querySelectorAll, ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"]) iframe[src^="https://googleads.g.doubleclick.net/pagead/ads"], #wrap, /^.+view(forum|topic).php\?f=\d+(&.+)?:\d{3}:\d+/)
-forum.release-apk.com##+js(avotoko-fake-element-property, #wrap, name:"wrap", dataset:{"loadComplete":"true"}, , , debug:1,log:1,st:10)
+forum.release-apk.com##+js(avotoko-fake-element-property, #wrap, name:"wrap", dataset:{"loadComplete":"true"})
 ! bypass other checking
 forum.release-apk.com##+js(avotoko-fake-computed-style, ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"])\, div[class^="phpbb-ads-center"], , display:block; height:200px; width:200px, /view(forum|topic).php\?f=\d+(&.+)?:\d{3}:\d+/)
 ! increase display speed
@@ -34,7 +34,7 @@ forum.release-apk.com##+js(avotoko-fake-gettime-speed, 1000, /^.+view(forum|topi
 ||forum.release-apk.com/ext/*.php?$script,1p
 ! bypass checking
 forum.release-apk.com##+js(avotoko-fake-computed-style, .adsbygoogle, , display:block, /view(forum|topic).php\?f=\d+(&.+)?:\d{3}:\d+/)
-forum.release-apk.com##+js(avotoko-fake-element-property, ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"]), dataset:{"adsbygoogleStatus":"done"}, , /^.+view(forum|topic).php\?f=\d+(&.+)?:\d{3}:\d+/, debug:1,log:1,st:10)
+forum.release-apk.com##+js(avotoko-fake-element-property, ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"]), dataset:{"adsbygoogleStatus":"done"}, , /^.+view(forum|topic).php\?f=\d+(&.+)?:\d{3}:\d+/)
 
 ! https://github.com/uBlockOrigin/uAssets/issues/8769
 ! https://dropgalaxy.in/fkqlb29nxfdk
