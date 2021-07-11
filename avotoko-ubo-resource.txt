@@ -542,6 +542,26 @@
 		if (n === 0){ log("error: css has no declaration"); return; }
 		return o;
 	}
+	function findPropertyDescriptor(obj, prop, opts){
+		function getObjName(obj){
+			return obj.hasOwnProperty("constructor") ? obj.constructor.name + " Prototype" : obj.name || obj.constructor.name;
+		}
+		let depth = 0;
+		opts = opts || {};
+		opts.debug && log("searching for a descriptor of", prop);
+		if (! prop){ opts.debug && log(depth, ":", "no property name"); return; }
+		while (obj){
+			opts.debug && log(depth, ":", getObjName(obj));
+			if (obj.hasOwnProperty(prop)){
+				let des = Object.getOwnPropertyDescriptor(obj, prop);
+				opts.debug && log("descriptor", des);
+				return Object.assign({owner: obj}, des);
+			}
+			obj = obj.prototype || Object.getPrototypeOf(obj);
+			depth++;
+		}
+		opts.debug && log(depth,":","descriptor not found");
+	}
 	log("start on", location.href);
 	let arg = (function(){
 		let a = []; a.push("{{1}}"), a.push("{{2}}"), a.push("{{3}}"), a.push("{{4}}"), a.push("{{5}}"), 
@@ -549,7 +569,7 @@
 		for (let i = 0 ; i < a.length ; i++){ if (a[i] === "{{" + (i+1) + "}}"){ a.splice(i); break; } }
 		return a;
 	})();
-	// arg = ['body', ,"display:none; height:1px;", 'debugger', 'debug:1', 'log:1', 'st:10'];
+	//arg = ['body', ,"display:none; height:1px;", 'debugger', 'debug:1', 'log:1', 'st:10'];
 	log("arg:", arg);
 	// param: <selector>, <pseudo-element pattern>, <css>, <stack trace pattern>, <opt>,,,)
 	let sel = arg[0], pePattern = arg[1], css = arg[2], stPattern = arg[3], opts = parseOpts(arg.slice(4));
@@ -589,18 +609,20 @@
 								return v;
 							}
 						});
-						let proto = Object.getPrototypeOf(cs);
 						Object.keys(css).forEach(property=>{
 							let val = css[property], 
-								{get, set} = Object.getOwnPropertyDescriptor(proto, property) || {},
+								{get, set, value} = findPropertyDescriptor(cs, property, opts) || {},
 								des = Object.getOwnPropertyDescriptor(obj, property);
-							if (! get){ log("error:", property, "descriptor get() not found"); return; }
-							if (des){ log("error:", property, "descriptor already defined"); return; }
+							if (! (get || value)){ log("error:", property, "descriptor get/value not found"); return; }
+							if (des && des.get){
+								log(cs[property] === val ? "warning:" : "error:", property, "descriptor get already defined");
+								return;
+							}
 							Object.defineProperty(obj, property, {
 								get(){
 									let st = makeSt(),
 										match = stPattern.test(st),
-										v = get.call(this);
+										v = get ? get.call(this) : value;
 									if (match){
 										log("faked get", e, property, v, "as", val);
 										return val;
