@@ -10,7 +10,7 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ```
 ! https://github.com/uBlockOrigin/uAssets/issues/8489
 ! https://forum.release-apk.com/viewforum.php?f=41
-! July 11 2021 update
+! Aug. 13 2021 update
 ! fix firefox issue
 !#if env_firefox
 ! enable content generation.
@@ -22,6 +22,7 @@ forum.release-apk.com#@#+js(remove-attr, style, ins, complete)
 !#endif
 ! hide ad space
 forum.release-apk.com##ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"])
+forum.release-apk.com##.google-auto-placed
 ! bypass iframe checking
 forum.release-apk.com##+js(avotoko-fake-queryselector-argument, document, querySelectorAll, ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"]) iframe[src^="https://googleads.g.doubleclick.net/pagead/ads"], #wrap, /^.+view(forum|topic).php\?f=\d+(&.+)?:\d{3}:\d+/)
 forum.release-apk.com##+js(avotoko-fake-element-property, #wrap, name:"wrap", dataset:{"loadComplete":"true"})
