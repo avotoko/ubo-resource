@@ -8,7 +8,7 @@
 "use strict";
 
 /// avotoko-fake-promise.js
-/// avotoko-fp.js
+/// alias avotoko-fp.js
 /// alias avotoko-promise-patch.js
 (function() {
 	function log(){
@@ -787,4 +787,171 @@
 		});
 	});
 	console.log("monitoring");
+})();
+
+/// avotoko-fake-object-method.js
+/// alias avotoko-fom.js
+(function() {
+	function log(){
+		console.log.apply(console,["[avotoko-fake-object-method]"].concat(Array.from(arguments)));
+	}
+	function parseOpts(args){
+		let opts = {};
+		for (let idx = 0 ; idx < args.length ; idx++){
+			let a = args[idx], i= a.indexOf(":"), name = a.substring(0, i).trim(), val = a.substring(i+1).trim();
+			val = /^\d+$/.test(val) ? val * 1 : NaN;
+			if (! ["debug","log","st"].includes(name) || isNaN(val)){ log("error: wrong option:", a); return}
+			opts[name] = val;
+		}
+		return opts;
+	}
+	function parsePattern(s){
+		let m, flag = "";
+		if (! s){ return /(?:)/; }
+		if (m = s.match(/^\/(.*)\/(\w*)$/)){
+			s = m[1], flag = m[2];
+		}
+		else {
+			s = s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+		}
+		if (s){
+			try { s = new RegExp(s, flag); }
+			catch (e){ log("RegExp error:", e.message, ":", s); return; }
+		}
+		return s;
+	}
+	function makeSt(){
+		let ua = navigator.userAgent, i = ua.includes("Chrome") ? 3 : ua.includes("Firefox")  ? 2 : 2;
+		return Error().stack.split("\n").slice(i).join("\n");
+	}
+	function toString(v, depth, recur){
+		depth = depth || 0, recur = recur || [];
+		if (v instanceof Array){
+			return "[" + v.map(e=>toString(e, depth+1, recur)).join(", ") + "]";
+		}
+		else if (v instanceof Element){
+			return v.outerHTML;
+		}
+		else if (v instanceof Node){
+			return v.nodeName + " " + toString(v.textContent || "");
+		}
+		else if (typeof v === "object" && v !== null){
+			if (recur.includes(v)){ return "[recursive object]"; }
+			else if (depth > 2){ return "[too deep object]"; }
+			recur.push(v);
+			let s = "";
+			Object.keys(v).forEach(k => {
+				s += ", " + k + ": " + toString(v[k], depth+1, recur);
+			});
+			return s ? "{ " + s.substring(2) + " }" : "{}";
+		}
+		else {
+			return "" + v;
+		}
+	}
+	function parseVArgs(args){
+		let more = [], hash = {}, maxIdx = -1;
+		for (let i = 0 ; i < args.length ; i++){
+			let a = args[i].trim(), idx;
+			if (! (m = a.match(/^(\d+):(.*)/))){
+				more = args.slice(a === "eova" ? i + 1 : i);
+				break;
+			}
+			idx = m[1] * 1;
+			if (hash.hasOwnProperty(idx)){ log("error: multiple defined arg index:", a); return {}; }
+			if ((hash[idx] = parsePattern(m[2].trim())) === void 0){ return {}; }
+			maxIdx = Math.max(maxIdx, idx);
+		}
+		let varg = new Array(maxIdx + 1), v;
+		for (let i = 0 ; i < maxIdx + 1; i++){
+			varg[i] = hash[i] || /(?:)/;
+		}
+		return {varg, more};
+	}
+	function findPropertyDescriptor(obj, prop, opts){
+		function getObjName(obj){
+			return obj.hasOwnProperty("constructor") ? obj.constructor.name + " Prototype" : obj.name || obj.constructor.name;
+		}
+		let depth = 0;
+		opts = opts || {};
+		opts.debug && log("searching for a descriptor of", prop);
+		if (! prop){ opts.debug && log(depth, ":", "no property name"); return; }
+		while (obj){
+			opts.debug && log(depth, ":", getObjName(obj));
+			if (obj.hasOwnProperty(prop)){
+				let des = Object.getOwnPropertyDescriptor(obj, prop);
+				opts.debug && log("descriptor", des);
+				return Object.assign({owner: obj}, des);
+			}
+			obj = obj.prototype || Object.getPrototypeOf(obj);
+			depth++;
+		}
+		opts.debug && log(depth,":","descriptor not found");
+	}
+	function parseChain(chain, type, minLength){
+		let prop = [], s = chain, m;
+		if (! (m = s.match(/^(\w+)(.*)/))){ log("error: chain must start with identifier"); return; }
+		m[1] !== "window" && prop.push("window");
+		prop.push(m[1]), s = m[2];
+		while (s){
+			if (! (m = s.match(/(\.(\w+)|\['(.+)'\]|\["(.+)"\])(.*)/))){ log("error: wrong property"); return; }
+			prop.push(m[2] || m[3] || m[4]), s = m[5];
+		}
+		if (prop.length < minLength){ log("error: chain has no " + type); return; }
+		return prop;
+	}
+	log("start on", location.href);
+	let arg = (function(){
+		let a = []; a.push("{{1}}"), a.push("{{2}}"), a.push("{{3}}"), a.push("{{4}}"), a.push("{{5}}"), 
+		a.push("{{6}}"), a.push("{{7}}"), a.push("{{8}}"), a.push("{{9}}"), a.push("{{10}}"),
+		a.push("{{11}}"), a.push("{{12}}"), a.push("{{13}}"), a.push("{{14}}"), a.push("{{15}}");
+		for (let i = 0 ; i < a.length ; i++){ if (a[i] === "{{" + (i+1) + "}}"){ a.splice(i); break; } }
+		return a;
+	})();
+	//arg = ['JSON.parse', '[]', '0:/^\\[\\{"alt_ads_id":/', 'debugger', 'debug:1', 'log:1', 'st:10'];
+	log("arg:", arg);
+	// param: <object.method>, <return value>, <arg pattern>..., <stack trace pattern>, <option>...)
+	let chain = arg[0], prop, val = arg[1], {varg, more} = parseVArgs(arg.slice(2)); 
+	if (! varg){ return; }
+	log("varg:", varg, "more:", more);
+	let stPattern = more[0], opts = parseOpts(more.slice(1));
+	if (! opts){ return; }
+	log("options:", opts);
+	if (! (chain = parseChain(chain, "method", 2))){ return; }
+	prop = chain.splice(chain.length - 1)[0];
+	opts.debug && log("object:", chain);
+	opts.debug && log("method:", prop);
+	if (val = val || void 0){
+		try { val = JSON.parse(val) } catch(e){ log("error: wrong value:", e.message, ":", val); return; }
+	}
+	opts.debug && log("return value:", typeof val === "string" ? toString(val) : val);
+	opts.debug && log("arg pattern:", varg);
+	if (! (stPattern = parsePattern(stPattern))){ return; }
+	opts.debug && log("stack trace pattern:", stPattern);
+	let obj = window;
+	for (let i = 1 ; i < chain.length ; i++){
+		try {
+			obj = obj[chain[i]];
+			if (! obj){ log("error:", chain.slice(0,i+1).join("."), "not defined"); return; }
+		} catch(e){ log(e.type || "error", ":", e.message, ":", chain.slice(0,i+1).join(".")); return; }
+	}
+	opts.debug && console.log("object:", obj);
+	if (typeof obj[prop] !== "function"){log("error:", prop, "is not function"); return;}
+	obj[prop] = new Proxy(obj[prop], {
+		apply: function(target, thisArg, args) {
+			const argsText = args.map((e,i)=>i+":"+toString(e)).join(", "),
+				st = makeSt(),
+				match = varg.every((rex,i)=>rex.test(toString(args[i]))) 
+							&& stPattern.test(st);
+			if (match){
+				log("faked", thisArg, prop, argsText);
+				return val;
+			}
+			else {
+				opts.log && log(thisArg, prop, argsText, (opts.st > 0 ? "\n" + st.split("\n").map(e=>"  "+e).slice(0, opts.st).join("\n") : " "));
+			}
+			return Reflect.apply(target, thisArg, args);
+		}
+	});
+	log("monitoring");
 })();
