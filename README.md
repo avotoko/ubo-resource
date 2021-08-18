@@ -8,6 +8,22 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ## Usage
 #### examples
 ```
+! https://www.reddit.com/r/uBlockOrigin/comments/p29y3w/these_guys_boast_combatting_all_adblocks/
+! https://github.com/uBlockOrigin/uAssets/issues/9754
+! https://github.com/AdguardTeam/AdguardFilters/issues/90634
+! https://github.com/AdguardTeam/AdGuardExtra/issues/236
+! https://ad-shield.io/en/
+! https://ygosu.com/
+! https://ppss.kr/
+! Aug. 18 2021
+! break the shield
+ad-shield.io,ygosu.com,ppss.kr##+js(avotoko-fake-object-method, JSON.parse, [], 0:/^\[\{"org_ads_id":/)
+! hide ads
+ad-shield.io###demo_button ~ *
+ppss.kr###genesis-sidebar-primary
+! uBlock filters blocks ads on ygosu.com
+! ygosu.com###left_nav, right_nav, .main_preview + div
+
 ! https://github.com/uBlockOrigin/uAssets/issues/8489
 ! https://forum.release-apk.com/viewforum.php?f=41
 ! Aug. 13 2021 update
