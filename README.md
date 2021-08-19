@@ -29,6 +29,8 @@ ygosu.com##+js(avotoko-fake-object-method, JSON.parse, [], 0:/^\[\{"org_ads_id":
 
 ! Ad-Shield is running but not working properly.
 ppss.kr###custom_html-2
+! block tracking
+||ppss.kr^$xhr,1p
 
 ! https://github.com/uBlockOrigin/uAssets/issues/8489
 ! https://forum.release-apk.com/viewforum.php?f=41
