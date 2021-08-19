@@ -15,14 +15,20 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! https://ad-shield.io/en/
 ! https://ygosu.com/
 ! https://ppss.kr/
-! Aug. 18 2021
-! break the shield
-ad-shield.io,ygosu.com,ppss.kr##+js(avotoko-fake-object-method, JSON.parse, [], 0:/^\[\{"org_ads_id":/)
-! hide ads
+! Aug. 19 2021 update
+
+! Hide ad.
 ad-shield.io###demo_button ~ *
-ppss.kr###genesis-sidebar-primary
-! uBlock filters blocks ads on ygosu.com
-! ygosu.com###left_nav, right_nav, .main_preview + div
+! Fakes elements that are hidden as visible.
+ad-shield.io##+js(avotoko-fake-computed-style, #demo_button ~ *, , display:block)
+
+! Break the shield
+ygosu.com##+js(avotoko-fake-object-method, JSON.parse, [], 0:/^\[\{"org_ads_id":/)
+! uBlock filters hide ads on ygosu.com.
+! ygosu.com###left_nav, #right_nav, .main_preview + div
+
+! Ad-Shield is running but not working properly.
+ppss.kr###custom_html-2
 
 ! https://github.com/uBlockOrigin/uAssets/issues/8489
 ! https://forum.release-apk.com/viewforum.php?f=41
