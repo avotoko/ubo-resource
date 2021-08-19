@@ -21,11 +21,16 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ad-shield.io###demo_button ~ *
 ! Fakes elements that are hidden as visible.
 ad-shield.io##+js(avotoko-fake-computed-style, #demo_button ~ *, , display:block)
+! block tracking
+||ad-shield.io^$xhr,1p
 
 ! Break the shield
 ygosu.com##+js(avotoko-fake-object-method, JSON.parse, [], 0:/^\[\{"org_ads_id":/)
 ! uBlock filters hide ads on ygosu.com.
 ! ygosu.com###left_nav, #right_nav, .main_preview + div
+! block tracking
+||ygosu.com^$xhr,1p
+@@||ygosu.com/*/$xhr,1p
 
 ! Ad-Shield is running but not working properly.
 ppss.kr###custom_html-2
