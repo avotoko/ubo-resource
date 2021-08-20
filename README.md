@@ -24,10 +24,10 @@ ad-shield.io##+js(avotoko-fake-computed-style, #demo_button ~ *, , display:block
 ! block tracking
 ||ad-shield.io^$xhr,1p
 
-! Break the shield
-ygosu.com##+js(avotoko-fake-object-method, JSON.parse, [], 0:/^\[\{"org_ads_id":/)
-! uBlock filters hide ads on ygosu.com.
-! ygosu.com###left_nav, #right_nav, .main_preview + div
+! hide ads.
+ygosu.com###left_nav, #right_nav, .main_preview + div
+! Fakes elements that are hidden as visible.
+ygosu.com##+js(avotoko-fake-computed-style, #left_nav\, #right_nav\, .main_preview + div, , display:block)
 ! block tracking
 ||ygosu.com^$xhr,1p
 @@||ygosu.com/*/$xhr,1p
