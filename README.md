@@ -15,7 +15,7 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! https://ad-shield.io/en/
 ! https://ygosu.com/
 ! https://ppss.kr/
-! Aug. 19 2021 update
+! Aug. 20 2021 update
 
 ! Hide ad.
 ad-shield.io###demo_button ~ *
@@ -26,7 +26,7 @@ ad-shield.io##+js(avotoko-fake-computed-style, #demo_button ~ *, , display:block
 
 ! hide ads.
 ygosu.com###left_nav, #right_nav, .main_preview + div
-! Fakes elements that are hidden as visible. not work on chrome. investigating.
+! Fakes elements that are hidden as visible.
 ygosu.com##+js(avotoko-fake-computed-style, #left_nav\, #right_nav\, .main_preview + div, , display:block)
 ! block tracking
 ||ygosu.com^$xhr,1p
