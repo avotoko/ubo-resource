@@ -26,7 +26,7 @@ ad-shield.io##+js(avotoko-fake-computed-style, #demo_button ~ *, , display:block
 
 ! hide ads.
 ygosu.com###left_nav, #right_nav, .main_preview + div
-! Fakes elements that are hidden as visible.
+! Fakes elements that are hidden as visible. not work on chrome. investigating.
 ygosu.com##+js(avotoko-fake-computed-style, #left_nav\, #right_nav\, .main_preview + div, , display:block)
 ! block tracking
 ||ygosu.com^$xhr,1p
