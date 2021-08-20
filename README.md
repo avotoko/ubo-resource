@@ -39,16 +39,9 @@ ppss.kr###custom_html-2
 
 ! https://github.com/uBlockOrigin/uAssets/issues/8489
 ! https://forum.release-apk.com/viewforum.php?f=41
-! Aug. 13 2021 update
-! fix firefox issue
-!#if env_firefox
-! enable content generation.
-forum.release-apk.com#@#+js(aopw, document.onload)
-forum.release-apk.com#@#^script:has-text(/'load'|document.onload/)
+! Aug. 20 2021 update
+! Block handlers that might overload the cpu.
 forum.release-apk.com##+js(acis, jQuery, 'load')
-! enable to click site logo jumping top page
-forum.release-apk.com#@#+js(remove-attr, style, ins, complete)
-!#endif
 ! hide ad space
 forum.release-apk.com##ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"])
 forum.release-apk.com##.google-auto-placed
