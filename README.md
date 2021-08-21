@@ -15,7 +15,7 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! https://ad-shield.io/en/
 ! https://ygosu.com/
 ! https://ppss.kr/
-! Aug. 20 2021 update
+! Aug. 21 2021 update
 
 ! Hide ad.
 ad-shield.io###demo_button ~ *
@@ -24,11 +24,7 @@ ad-shield.io##+js(avotoko-fake-computed-style, #demo_button ~ *, , display:block
 ! block tracking
 ||ad-shield.io^$xhr,1p
 
-! hide ads.
-ygosu.com###left_nav, #right_nav, .main_preview + div
-! Fakes elements that are hidden as visible.
-ygosu.com##+js(avotoko-fake-computed-style, #left_nav\, #right_nav\, .main_preview + div, , display:block)
-! block tracking
+! block ads and tracking
 ||ygosu.com^$xhr,1p
 @@||ygosu.com/*/$xhr,1p
 
