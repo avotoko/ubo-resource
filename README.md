@@ -15,23 +15,22 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! https://ad-shield.io/en/
 ! https://ygosu.com/
 ! https://ppss.kr/
-! Aug. 21 2021 update
+! Aug. 27 2021 update
 
+! uBO blocks ads and tracking on ygosu.com
+
+! Ad-Shield is running but not working properly.
+ppss.kr###custom_html-2
+! block tracking
+||ppss.kr^$xhr,1p
+
+! ad-shield.io does not display properly without adblock
 ! Hide ad.
 ad-shield.io###demo_button ~ *
 ! Fakes elements that are hidden as visible.
 ad-shield.io##+js(avotoko-fake-computed-style, #demo_button ~ *, , display:block)
 ! block tracking
 ||ad-shield.io^$xhr,1p
-
-! block ads and tracking
-||ygosu.com^$xhr,1p
-@@||ygosu.com/*/$xhr,1p
-
-! Ad-Shield is running but not working properly.
-ppss.kr###custom_html-2
-! block tracking
-||ppss.kr^$xhr,1p
 
 ! https://github.com/uBlockOrigin/uAssets/issues/8489
 ! https://forum.release-apk.com/viewforum.php?f=41
