@@ -402,11 +402,13 @@
 			return val;
 		}
 	});
-	console.log("monitoring");
+	log("monitoring");
 })();
 
 /// avotoko-fake-queryselector-argument.js
+/// alias avotoko-fake-getelement-argument.js
 /// alias avotoko-fqsa.js
+/// alias avotoko-fgea.js
 (function() {
 	function log(){
 		console.log.apply(console,["[avotoko-fake-queryselector-argument]"].concat(Array.from(arguments)));
@@ -448,36 +450,42 @@
 		for (let i = 0 ; i < a.length ; i++){ if (a[i] === "{{" + (i+1) + "}}"){ a.splice(i); break; } }
 		return a;
 	})();
-	// arg = ['document', "querySelector", 'div', 'body', 'debugger', 'debug:1', 'log:1', 'st:10'];
+	//arg = ['document', "getElementsByTagName", 'head', 'body', 'debugger', 'debug:1', 'log:1', 'st:10'];
 	log("arg:", arg);
 	// param: <document|selector>, <method list>, <argument pattern>, <net argument>, <stack trace pattern>, <option>...)
-	let sel = arg[0], props = arg[1], argPattern = arg[2], newArg = arg[3], stPattern = arg[4], opts = parseOpts(arg.slice(5)), method = {querySelector:!0, querySelectorAll:!0};
+	let sel = arg[0], props = arg[1], argPattern = arg[2], newArg = arg[3], stPattern = arg[4], opts = parseOpts(arg.slice(5)), method = {querySelector:!0, querySelectorAll:!0, getElementById:!0, getElementsByClassName:!0, getElementsByTagName:!0, getElementsByTagNameNS:!0};
 	if (! opts){ return; }
 	log("options:", opts);
 	if (! sel){ log("error: document or selector required"); return; }
 	if (! props){ log("error: method list required"); return; }
-	props = props.split("|").map(e=>e.trim()).filter(e=>!!e);
+	props = props.split(/[ \|]/).map(e=>e.trim()).filter(e=>!!e);
 	if (props.length === 0){ log("error: method required"); return; }
-	if (props.some(e=>! method[e])){ log("error: wrong method. support", Object.keys(method).join(", ")); return; }
 	opts.debug && log("method list", props);
+	if (props.some(e=>! method[e])){ log("error: wrong method. support", Object.keys(method).join(", ")); return; }
 	if (! (argPattern = parsePattern(argPattern))){ return; }
 	opts.debug && log("argument pattern", argPattern);
 	if (! newArg){ log("error: new argument required"); return; }
 	opts.debug && log("new argument", newArg);
 	if (! (stPattern = parsePattern(stPattern))){ return; }
 	opts.debug && log("stack pattern", stPattern);
-	let obj = sel === "document" ? document : HTMLElement.prototype;
+	let obj = sel === "document" ? document : HTMLElement.prototype, nMonitoring = 0;
 	props.forEach(prop=>{
+		if (typeof obj[prop] !== "function"){
+			log("error:", prop, "in", obj.constructor.name, "is not function");
+			return;
+		}
+		++nMonitoring;
 		obj[prop] = new Proxy(obj[prop], {
 			apply: function(target, thisArg, args) {
 				try {
 					if (thisArg === document || thisArg.matches(sel)){
-						let argSel = args[0],
+						let i = prop.endsWith("NS") ? 1 : 0,
+							argSel =  args[i],
 							st = makeSt(),
 							match = argPattern.test(argSel) && stPattern.test(st);
 						if (match){
 							log("faked", thisArg, prop, argSel, "as", newArg);
-							args[0] = newArg;
+							args[i] = newArg;
 						}
 						else {
 							opts.log && log(thisArg, prop, argSel + (opts.st > 0 ? "\n" + st.split("\n").map(e=>"  "+e).slice(0, opts.st).join("\n") : ""));
@@ -489,7 +497,7 @@
 			}
 		});
 	});
-	log("monitoring");
+	if (nMonitoring > 0){ log("monitoring"); }
 })();
 
 /// avotoko-fake-computed-style.js
@@ -533,7 +541,7 @@
 			cssText.split(";").forEach(decl=>{
 				if (decl.trim()){
 					let i = decl.indexOf(":"), p = decl.substring(0, i).trim(), v = decl.substring(i+1).trim();
-					if (! (p && v)){ throw Error("wrong css declaration: " + decl); }
+					if (! p){ throw Error("wrong css declaration: " + decl); }
 					o[p] = v, n++;
 				}
 			});
@@ -569,13 +577,14 @@
 		for (let i = 0 ; i < a.length ; i++){ if (a[i] === "{{" + (i+1) + "}}"){ a.splice(i); break; } }
 		return a;
 	})();
-	//arg = ['body', ,"display:none; height:1px;", 'debugger', 'debug:1', 'log:1', 'st:10'];
+	//arg = ['#left_nav, #right_nav, .main_preview + div, .logo', ,"display:;", '/debugger|anonymous/', 'debug:1', 'log:1', 'st:10'];
 	log("arg:", arg);
 	// param: <selector>, <pseudo-element pattern>, <css>, <stack trace pattern>, <opt>,,,)
 	let sel = arg[0], pePattern = arg[1], css = arg[2], stPattern = arg[3], opts = parseOpts(arg.slice(4));
 	if (! opts){ return; }
 	log("options:", opts);
 	if (! sel){ log("error: selector required"); return; }
+	opts.debug && log("selector:", sel);
 	if (! (pePattern = parsePattern(pePattern))){ return; }
 	opts.debug && log("pseudo-element pattern:", pePattern);
 	if (! (css = parseCssText(css))){ return; }
@@ -585,25 +594,24 @@
 	let obj = window , prop = "getComputedStyle";
 	obj[prop] = new Proxy(obj[prop], {
 		apply: function(target, thisArg, args) {
-			let e = args[0], pe/* pseudo-element */ = args[1], cs = Reflect.apply(target, thisArg, args),
+			let e = args[0], pe/* pseudo-element */ = args[1], style = Reflect.apply(target, thisArg, args),
 				st = makeSt();
-			if (cs){
+			if (style){
 				try {
 					if (e.matches(sel) && pePattern.test(pe)){
 						opts.log && log("got target", e, " " + (opts.st > 0 ? "\n" + st.split("\n").map(e=>"  "+e).slice(0, opts.st).join("\n") : ""));
-						let obj = cs, prop = "getPropertyValue";
-						obj[prop] = new Proxy(obj[prop], {
+						let prop = "getPropertyValue";
+						style[prop] = new Proxy(style[prop], {
 							apply: function(target, thisArg, args) {
 								let property = args[0], v = Reflect.apply(target, thisArg, args);
 								if (css.hasOwnProperty(property)){
-									let st = makeSt(),
-										match = stPattern.test(st);
+									let st = makeSt(), match = stPattern.test(st);
 									if (match){
-										log("faked getPropertyValue", e, property, v, "as", css[property]);
+										log("faked", prop, e, property, '"' + v + '"', "as", '"' + css[property] + '"');
 										return css[property];
 									}
 									else {
-										opts.log && log("getPropertyValue", e, property, v  + (opts.st > 0 ? "\n" + st.split("\n").map(e=>"  "+e).slice(0, opts.st).join("\n") : ""));
+										opts.log && log(prop, e, property, '"' + v + '"' + (opts.st > 0 ? "\n" + st.split("\n").map(e=>"  "+e).slice(0, opts.st).join("\n") : ""));
 									}
 								}
 								return v;
@@ -611,24 +619,26 @@
 						});
 						Object.keys(css).forEach(property=>{
 							let val = css[property], 
-								{get, set, value} = findPropertyDescriptor(cs, property, opts) || {},
-								des = Object.getOwnPropertyDescriptor(obj, property);
-							if (! (get || value)){ log("error:", property, "descriptor get/value not found"); return; }
-							if (des && des.get){
-								log(cs[property] === val ? "warning:" : "error:", property, "descriptor get already defined");
+								des = findPropertyDescriptor(style, property, opts) || {},
+								des2 = Object.getOwnPropertyDescriptor(style, property);
+							if (! (des.get/*firefox*/ || des.hasOwnProperty("value")/*chrome*/)){
+								log("error:", property, "descriptor has no getter/value"); return;
+							}
+							if (des2 && des2.get){
+								log(style[property] === val ? "warning:" : "error:", property, "descriptor getter already defined");
 								return;
 							}
-							Object.defineProperty(obj, property, {
+							Object.defineProperty(style, property, {
 								get(){
 									let st = makeSt(),
 										match = stPattern.test(st),
-										v = get ? get.call(this) : value;
+										v = des.get ? des.get.call(this) : des.value;
 									if (match){
-										log("faked get", e, property, v, "as", val);
+										log("faked get", e, property, '"' + v + '"', "as", '"' + val + '"');
 										return val;
 									}
 									else {
-										opts.log && log("get", e, property, v  + (opts.st > 0 ? "\n" + st.split("\n").map(e=>"  "+e).slice(0, opts.st).join("\n") : ""));
+										opts.log && log("get", e, property, '"' + v + '"' + (opts.st > 0 ? "\n" + st.split("\n").map(e=>"  "+e).slice(0, opts.st).join("\n") : ""));
 									}
 									return v;
 								},
@@ -640,7 +650,7 @@
 				}
 				catch(e){ log(e.type, e.message); }
 			}
-			return cs;
+			return style;
 		}
 	});
 	log("monitoring");
@@ -705,19 +715,19 @@
 		}
 		let depth = 0;
 		opts = opts || {};
-		opts.debug && console.log("searching for a descriptor of", prop);
-		if (! prop){ opts.debug && console.log(depth, ":", "no property name"); return; }
+		opts.debug && log("searching for a descriptor of", prop);
+		if (! prop){ opts.debug && log(depth, ":", "no property name"); return; }
 		while (obj){
-			opts.debug && console.log(depth, ":", getObjName(obj));
+			opts.debug && log(depth, ":", getObjName(obj));
 			if (obj.hasOwnProperty(prop)){
 				let des = Object.getOwnPropertyDescriptor(obj, prop);
-				opts.debug && console.log("descriptor", des);
+				opts.debug && log("descriptor", des);
 				return des;
 			}
 			obj = obj.prototype || Object.getPrototypeOf(obj);
 			depth++;
 		}
-		opts.debug && console.log(depth,":","descriptor not found");
+		opts.debug && log(depth,":","descriptor not found");
 	}
 	function parseChain(chain){
 		let prop = [], s = chain, m;
@@ -760,7 +770,7 @@
 			if (! obj){ log("error:", chain.slice(0,i+1).join("."), "not defined"); return; }
 		} catch(e){ log(e.type || "error", ":", e.message, ":", chain.slice(0,i+1).join(".")); return; }
 	}
-	opts.debug && console.log("object:", obj);
+	opts.debug && log("object:", obj);
 	Object.keys(props).forEach(prop=>{
 		let _val,
 			val = props[prop], fval = function(){ return props[prop]; };
@@ -786,15 +796,18 @@
 			configurable: true,
 		});
 	});
-	console.log("monitoring");
+	log("monitoring");
 })();
 
 /// avotoko-fake-object-method.js
 /// alias avotoko-fom.js
 (function() {
-	function log(){
-		console.log.apply(console,["[avotoko-fake-object-method]"].concat(Array.from(arguments)));
-	}
+	const log = function(){
+		const _log = console.log, concat = Array.prototype.concat, from = Array.from;
+		return function log(){
+			_log.apply(console, concat.call(["[avotoko-fake-object-method]"], from(arguments)));
+		}
+	}();
 	function parseOpts(args){
 		let opts = {};
 		for (let idx = 0 ; idx < args.length ; idx++){
@@ -820,35 +833,47 @@
 		}
 		return s;
 	}
-	function makeSt(){
-		let ua = navigator.userAgent, i = ua.includes("Chrome") ? 3 : ua.includes("Firefox")  ? 2 : 2;
-		return Error().stack.split("\n").slice(i).join("\n");
-	}
-	function toString(v, depth, recur){
-		depth = depth || 0, recur = recur || [];
-		if (v instanceof Array){
-			return "[" + v.map(e=>toString(e, depth+1, recur)).join(", ") + "]";
+	const makeSt = function(){
+		const ua =navigator.userAgent, includes = String.prototype.includes,
+				split = String.prototype.split, slice = Array.prototype.slice,
+				join = Array.prototype.join;
+		return function makeSt(){
+			let i = includes.call(ua, "Chrome") ? 3 : includes.call(ua, "Firefox")  ? 2 : 2;
+			return join.call(slice.call(split.call(Error().stack, "\n"), i), "\n");
 		}
-		else if (v instanceof Element){
-			return v.outerHTML;
+	}();
+	const toString = function(){
+		return function toString(v, depth, recur){
+			const map = Array.prototype.map, join = Array.prototype.join,
+				push = Array.prototype.push, forEach = Array.prototype.forEach,
+				a_includes = Array.prototype.includes,
+				s_includes = String.prototype.includes, substring = String.prototype.substring,
+				keys = Object.keys;
+			depth = depth || 0, recur = recur || [];
+			if (v instanceof Array){
+				return "[" + join.call(map.call(v, e=>toString(e, depth+1, recur)), ", ") + "]";
+			}
+			else if (v instanceof Element){
+				return v.outerHTML;
+			}
+			else if (v instanceof Node){
+				return v.nodeName + " " + toString(v.textContent || "");
+			}
+			else if (typeof v === "object" && v !== null){
+				if (a_includes.call(recur, v)){ return "[recursive object]"; }
+				else if (depth > 2){ return "[too deep object]"; }
+				push.call(recur, v);
+				let s = "";
+				forEach.call(keys(v), k => {
+					s += ", " + k + ": " + toString(v[k], depth+1, recur);
+				});
+				return s ? "{ " + substring.call(s, 2) + " }" : "{}";
+			}
+			else {
+				return "" + v;
+			}
 		}
-		else if (v instanceof Node){
-			return v.nodeName + " " + toString(v.textContent || "");
-		}
-		else if (typeof v === "object" && v !== null){
-			if (recur.includes(v)){ return "[recursive object]"; }
-			else if (depth > 2){ return "[too deep object]"; }
-			recur.push(v);
-			let s = "";
-			Object.keys(v).forEach(k => {
-				s += ", " + k + ": " + toString(v[k], depth+1, recur);
-			});
-			return s ? "{ " + s.substring(2) + " }" : "{}";
-		}
-		else {
-			return "" + v;
-		}
-	}
+	}();
 	function parseVArgs(args){
 		let more = [], hash = {}, maxIdx = -1;
 		for (let i = 0 ; i < args.length ; i++){
@@ -867,26 +892,6 @@
 			varg[i] = hash[i] || /(?:)/;
 		}
 		return {varg, more};
-	}
-	function findPropertyDescriptor(obj, prop, opts){
-		function getObjName(obj){
-			return obj.hasOwnProperty("constructor") ? obj.constructor.name + " Prototype" : obj.name || obj.constructor.name;
-		}
-		let depth = 0;
-		opts = opts || {};
-		opts.debug && log("searching for a descriptor of", prop);
-		if (! prop){ opts.debug && log(depth, ":", "no property name"); return; }
-		while (obj){
-			opts.debug && log(depth, ":", getObjName(obj));
-			if (obj.hasOwnProperty(prop)){
-				let des = Object.getOwnPropertyDescriptor(obj, prop);
-				opts.debug && log("descriptor", des);
-				return Object.assign({owner: obj}, des);
-			}
-			obj = obj.prototype || Object.getPrototypeOf(obj);
-			depth++;
-		}
-		opts.debug && log(depth,":","descriptor not found");
 	}
 	function parseChain(chain, type, minLength){
 		let prop = [], s = chain, m;
@@ -908,7 +913,7 @@
 		for (let i = 0 ; i < a.length ; i++){ if (a[i] === "{{" + (i+1) + "}}"){ a.splice(i); break; } }
 		return a;
 	})();
-	//arg = ['JSON.parse', '[]', '0:/^\\[\\{"alt_ads_id":/', 'debugger', 'debug:1', 'log:1', 'st:10'];
+	//arg = ['String.prototype.includes', 'true', '0:/^(?:setTimeout|setInterval|open)$/', 'debugger', 'debug:1', 'log:1', 'st:10'];
 	log("arg:", arg);
 	// param: <object.method>, <return value>, <arg pattern>..., <stack trace pattern>, <option>...)
 	let chain = arg[0], prop, val = arg[1], {varg, more} = parseVArgs(arg.slice(2)); 
@@ -935,23 +940,29 @@
 			if (! obj){ log("error:", chain.slice(0,i+1).join("."), "not defined"); return; }
 		} catch(e){ log(e.type || "error", ":", e.message, ":", chain.slice(0,i+1).join(".")); return; }
 	}
-	opts.debug && console.log("object:", obj);
+	opts.debug && log("object:", obj);
 	if (typeof obj[prop] !== "function"){log("error:", prop, "is not function"); return;}
 	obj[prop] = new Proxy(obj[prop], {
-		apply: function(target, thisArg, args) {
-			const argsText = args.map((e,i)=>i+":"+toString(e)).join(", "),
-				st = makeSt(),
-				match = varg.every((rex,i)=>rex.test(toString(args[i]))) 
-							&& stPattern.test(st);
-			if (match){
-				log("faked", thisArg, prop, argsText);
-				return val;
+		apply: function(){
+			const map = Array.prototype.map, join = Array.prototype.join, 
+				every = Array.prototype.every, slice = Array.prototype.slice,
+				split = String.prototype.split, test = RegExp.prototype.test,
+				Reflect_apply = Reflect.apply;
+			return function(target, thisArg, args) {
+				const argsText = join.call(map.call(args, (e,i) => i + ":" + toString(e)) ,", "),
+					st = makeSt(),
+					match = every.call(varg, (rex,i)=> test.call(rex, toString(args[i]))) 
+								&& test.call(stPattern, st);
+				if (match){
+					log("faked", thisArg, prop, argsText);
+					return val;
+				}
+				else {
+					opts.log && log(thisArg, prop, argsText, (opts.st > 0 ? "\n" + join.call(slice.call(map.call(split.call(st,"\n"), e=>"  "+e), 0, opts.st), "\n") : " "));
+				}
+				return Reflect_apply(target, thisArg, args);
 			}
-			else {
-				opts.log && log(thisArg, prop, argsText, (opts.st > 0 ? "\n" + st.split("\n").map(e=>"  "+e).slice(0, opts.st).join("\n") : " "));
-			}
-			return Reflect.apply(target, thisArg, args);
-		}
+		}()
 	});
 	log("monitoring");
 })();
