@@ -836,10 +836,10 @@
 	const makeSt = function(){
 		const ua =navigator.userAgent, includes = String.prototype.includes,
 				split = String.prototype.split, slice = Array.prototype.slice,
-				join = Array.prototype.join;
+				join = Array.prototype.join, _Error = Error;
 		return function makeSt(){
 			let i = includes.call(ua, "Chrome") ? 3 : includes.call(ua, "Firefox")  ? 2 : 2;
-			return join.call(slice.call(split.call(Error().stack, "\n"), i), "\n");
+			return join.call(slice.call(split.call(_Error().stack, "\n"), i), "\n");
 		}
 	}();
 	const toString = function(){
