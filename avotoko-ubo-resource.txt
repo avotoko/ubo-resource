@@ -875,11 +875,15 @@
 		}
 	}();
 	function parseVArgs(args){
-		let more = [], hash = {}, maxIdx = -1;
+		let noarg, more = [], hash = {}, maxIdx = -1;
 		for (let i = 0 ; i < args.length ; i++){
 			let a = args[i].trim(), idx;
 			if (! (m = a.match(/^(\d+):(.*)/))){
-				more = args.slice(a === "eova" ? i + 1 : i);
+				if (a === "noarg"){
+					if (maxIdx !== -1){ log("error: 'noarg' with arg(s)"); return {}; }
+					noarg = true;
+				}
+				more = args.slice(["noarg", "eova"].includes(a) ? i + 1 : i);
 				break;
 			}
 			idx = m[1] * 1;
@@ -891,6 +895,7 @@
 		for (let i = 0 ; i < maxIdx + 1; i++){
 			varg[i] = hash[i] || /(?:)/;
 		}
+		varg.noarg = noarg;
 		return {varg, more};
 	}
 	function parseChain(chain, type, minLength){
@@ -913,12 +918,12 @@
 		for (let i = 0 ; i < a.length ; i++){ if (a[i] === "{{" + (i+1) + "}}"){ a.splice(i); break; } }
 		return a;
 	})();
-	//arg = ['String.prototype.includes', 'true', '0:/^(?:setTimeout|setInterval|open)$/', 'debugger', 'debug:1', 'log:1', 'st:10'];
+	//arg = ['atob', '"hello"', 'noarg', 'debugger', 'debug:1', 'log:1', 'st:10'];
 	log("arg:", arg);
 	// param: <object.method>, <return value>, <arg pattern>..., <stack trace pattern>, <option>...)
 	let chain = arg[0], prop, val = arg[1], {varg, more} = parseVArgs(arg.slice(2)); 
 	if (! varg){ return; }
-	log("varg:", varg, "more:", more);
+	log("varg:", (varg.noarg ? "noarg" : varg), "more:", more);
 	let stPattern = more[0], opts = parseOpts(more.slice(1));
 	if (! opts){ return; }
 	log("options:", opts);
@@ -951,7 +956,7 @@
 			return function(target, thisArg, args) {
 				const argsText = join.call(map.call(args, (e,i) => i + ":" + toString(e)) ,", "),
 					st = makeSt(),
-					match = every.call(varg, (rex,i)=> test.call(rex, toString(args[i]))) 
+					match = (varg.noarg ? args.length === 0 : args.length === 0 ? varg.length === 0 : every.call(varg, (rex,i)=> test.call(rex, toString(args[i]))))
 								&& test.call(stPattern, st);
 				if (match){
 					log("faked", thisArg, prop, argsText);
