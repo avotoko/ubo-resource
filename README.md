@@ -20,7 +20,7 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! Fix uBlock filters
 /.+(?<!\.(yg|xml))$/$xhr,1p,domain=ygosu.com,redirect=noopjs,badfilter
 ! Hide ads.
-ygosu.com###left_nav, #right_nav, .main_preview + div, .board_body > :not([class="board_top"]):not([id="pc_main_pop_position"]):not([class="container"]):not([class="option"]
+ygosu.com###left_nav, #right_nav, .main_preview + div, .board_body > :not([class="board_top"]):not([id="pc_main_pop_position"]):not([class="container"]):not([class="option"])
 ! Fakes elements that are hidden as visible.
 ygosu.com##+js(avotoko-fake-computed-style, #left_nav\, #right_nav\, .main_preview + div\, .board_body > :not([class="board_top"]):not([id="pc_main_pop_position"]):not([class="container"]):not([class="option"]), , display:block)
 ! Protect avotoko-fake-computed-style
