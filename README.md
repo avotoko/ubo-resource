@@ -15,22 +15,29 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! https://ad-shield.io/en/
 ! https://ygosu.com/
 ! https://ppss.kr/
-! Aug. 27 2021 update
+! Sep. 2 2021 update
 
-! uBO blocks ads and tracking on ygosu.com
+! Fix uBlock filters
+/.+(?<!\.(yg|xml))$/$xhr,1p,domain=ygosu.com,redirect=noopjs,badfilter
+! Hide ads.
+ygosu.com###left_nav, #right_nav, .main_preview + div, .board_body > :not([class="board_top"]):not([id="pc_main_pop_position"]):not([class="container"]):not([class="option"]
+! Fakes elements that are hidden as visible.
+ygosu.com##+js(avotoko-fake-computed-style, #left_nav\, #right_nav\, .main_preview + div\, .board_body > :not([class="board_top"]):not([id="pc_main_pop_position"]):not([class="container"]):not([class="option"]), , display:block)
+! Protect avotoko-fake-computed-style
+ygosu.com##+js(avotoko-fom, getComputedStyle.toString, "function getComputedStyle(){ [native code] }")
 
-! Ad-Shield is running but not working properly.
+! Hide ads.
 ppss.kr###custom_html-2
-! block tracking
-||ppss.kr^$xhr,1p
+! Fakes elements that are hidden as visible.
+ppss.kr##+js(avotoko-fake-computed-style, #custom_html-2, , display:block)
+! Protect avotoko-fake-computed-style
+ppss.kr##+js(avotoko-fom, getComputedStyle.toString, "function getComputedStyle(){ [native code] }")
 
 ! ad-shield.io does not display properly without adblock
 ! Hide ad.
 ad-shield.io###demo_button ~ *
 ! Fakes elements that are hidden as visible.
 ad-shield.io##+js(avotoko-fake-computed-style, #demo_button ~ *, , display:block)
-! block tracking
-||ad-shield.io^$xhr,1p
 
 ! https://github.com/uBlockOrigin/uAssets/issues/8489
 ! https://forum.release-apk.com/viewforum.php?f=41
