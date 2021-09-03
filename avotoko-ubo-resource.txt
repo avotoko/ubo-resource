@@ -971,3 +971,133 @@
 	});
 	log("monitoring");
 })();
+
+/// avotoko-no-shadow-root.js
+/// alias avotoko-nsd.js
+(function() {
+	const log = function(){
+		const _log = console.log, concat = Array.prototype.concat, from = Array.from;
+		return function log(){
+			_log.apply(console, concat.call(["[ avotoko-no-shadow-root]"], from(arguments)));
+		}
+	}();
+	function parseOpts(args){
+		let opts = {};
+		for (let idx = 0 ; idx < args.length ; idx++){
+			let a = args[idx], i= a.indexOf(":"), name = a.substring(0, i).trim(), val = a.substring(i+1).trim();
+			val = /^\d+$/.test(val) ? val * 1 : NaN;
+			if (! ["debug","log","st"].includes(name) || isNaN(val)){ log("error: wrong option:", a); return}
+			opts[name] = val;
+		}
+		return opts;
+	}
+	function parsePattern(s){
+		let m, flag = "";
+		if (! s){ return /(?:)/; }
+		if (m = s.match(/^\/(.*)\/(\w*)$/)){
+			s = m[1], flag = m[2];
+		}
+		else {
+			s = s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+		}
+		if (s){
+			try { s = new RegExp(s, flag); }
+			catch (e){ log("RegExp error:", e.message, ":", s); return; }
+		}
+		return s;
+	}
+	const makeSt = function(){
+		const ua =navigator.userAgent, includes = String.prototype.includes,
+				split = String.prototype.split, slice = Array.prototype.slice,
+				join = Array.prototype.join, _Error = Error;
+		return function makeSt(){
+			let i = includes.call(ua, "Chrome") ? 3 : includes.call(ua, "Firefox")  ? 2 : 2;
+			return join.call(slice.call(split.call(_Error().stack, "\n"), i), "\n");
+		}
+	}();
+	function parseOptions(s){
+		const available = {
+			"delay": v=> ! isNaN(v*1),
+		};
+		let options = {}, ar = s.split(" ").filter(e=>e);
+		for (let i = 0 ; i < ar.length ; i++){
+			let opt = ar[i], idx = opt.indexOf(":"), key, val;
+			if (idx === -1){ log("error: ':' missed at", opt); return; }
+			key = opt.substring(0, idx).trim(), val = opt.substring(idx + 1).trim();
+			if (! key){ log("error: option name required:", opt); return; }
+			if (! val){ log("error: option value required:", opt); return; }
+			if (! available.hasOwnProperty(key)){ log("error: unknown option:", opt); return; }
+			if (! available[key](val)){ log("error: wrong value:", opt); return; }
+			if (options.hasOwnProperty(key)){ log("error: multiple defined option:", opt); return; }
+			options[key] = val;
+		}
+		return options;
+	}
+	log("start on", location.href);
+	let arg = (function(){
+		let a = []; a.push("{{1}}"), a.push("{{2}}"), a.push("{{3}}"), a.push("{{4}}"), a.push("{{5}}"), 
+		a.push("{{6}}"), a.push("{{7}}"), a.push("{{8}}"), a.push("{{9}}"), a.push("{{10}}"),
+		a.push("{{11}}"), a.push("{{12}}"), a.push("{{13}}"), a.push("{{14}}"), a.push("{{15}}");
+		for (let i = 0 ; i < a.length ; i++){ if (a[i] === "{{" + (i+1) + "}}"){ a.splice(i); break; } }
+		return a;
+	})();
+	//arg = ['div', 'delay:100', 'debugger', 'debug:1', 'log:1', 'st:10'];
+	log("arg:", arg);
+	// param: <selector>, <options>, <stack trace pattern>, <option>...)
+	let sel = arg[0] || "*", options = arg[1], stPattern = arg[2], opts = parseOpts(arg.slice(3));
+	if (! opts){ return; }
+	log("debug options:", opts);
+	opts.debug && log("selector:", sel);
+	if (! (options = parseOptions(options))){ return; }
+	options.delay = options.hasOwnProperty("delay") ? options.delay * 1 : 0;
+	opts.debug && log("command options:", options);
+	if (! (stPattern = parsePattern(stPattern))){ return; }
+	opts.debug && log("stack trace pattern:", stPattern);
+	const observe = function(){
+		const _setTimeout = setTimeout,
+				Element_remove = Element.prototype.remove,
+				Array_forEach = Array.prototype.forEach;
+		const observer = new MutationObserver((mutations, observer)=>{
+			Array_forEach.call(mutations, (m,j)=>{
+				if (m.type === "childList"){
+					m.addedNodes.forEach((e,i)=>{
+						opts.log && log("added and removing", e);
+						if (options.delay === 0){
+							Element_remove.call(e);
+						}
+						else {
+							_setTimeout.call(null, function(e, remove){
+								Element_remove.call(e);
+							}, options.delay, e, Element_remove);
+						}
+					});
+				}
+			});
+		});
+		return observer.observe.bind(observer);
+	}();
+	let obj = Element.prototype, prop = "attachShadow";
+	obj[prop] = new Proxy(obj[prop], {
+		apply: function(){
+			const Reflect_apply = Reflect.apply,
+					matches = Element.prototype.matches,  test = RegExp.prototype.test,
+					join = Array.prototype.join, slice = Array.prototype.slice,
+					map = Array.prototype.map, split = String.prototype.split;
+			return function(target, thisArg, args) {
+				let v = Reflect_apply(target, thisArg, args), st = makeSt(); 
+				try {
+					if (matches.call(thisArg, sel) && test.call(stPattern, st)){
+						opts.log && log("observing", thisArg, "ShadowRoot", v);
+						observe(v, {childList: true});
+					}
+					else {
+						opts.log && log(thisArg, prop, "init:", args[0], (opts.st > 0 ? "\n" + join.call(slice.call(map.call(split.call(st,"\n"), e=>"  "+e), 0, opts.st), "\n") : " "));
+					}
+				}
+				catch(e){ log(e.type || "error", ":", e.message, ":", sel) }; 
+				return v;
+			}
+		}(),
+	});
+	log("monitoring");
+})();
