@@ -843,12 +843,12 @@
 		}
 	}();
 	const toString = function(){
+		const map = Array.prototype.map, join = Array.prototype.join,
+			push = Array.prototype.push, pop = Array.prototype.pop, 
+			forEach = Array.prototype.forEach, a_includes = Array.prototype.includes,
+			s_includes = String.prototype.includes, substring = String.prototype.substring,
+			keys = Object.keys;
 		return function toString(v, depth, recur){
-			const map = Array.prototype.map, join = Array.prototype.join,
-				push = Array.prototype.push, forEach = Array.prototype.forEach,
-				a_includes = Array.prototype.includes,
-				s_includes = String.prototype.includes, substring = String.prototype.substring,
-				keys = Object.keys;
 			depth = depth || 0, recur = recur || [];
 			if (v instanceof Array){
 				return "[" + join.call(map.call(v, e=>toString(e, depth+1, recur)), ", ") + "]";
@@ -867,6 +867,7 @@
 				forEach.call(keys(v), k => {
 					s += ", " + k + ": " + toString(v[k], depth+1, recur);
 				});
+				pop.call(recur);
 				return s ? "{ " + substring.call(s, 2) + " }" : "{}";
 			}
 			else {
