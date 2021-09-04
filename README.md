@@ -15,10 +15,8 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! https://ad-shield.io/en/
 ! https://ygosu.com/
 ! https://ppss.kr/
-! Sep. 2 2021 update
+! Sep. 5 2021 update
 
-! Fix uBlock filters
-/.+(?<!\.(yg|xml))$/$xhr,1p,domain=ygosu.com,redirect=noopjs,badfilter
 ! Hide ads.
 ygosu.com###left_nav, #right_nav, .main_preview + div, .board_body > :not([class="board_top"]):not([id="pc_main_pop_position"]):not([class="container"]):not([class="option"])
 ! Fakes elements that are hidden as visible.
