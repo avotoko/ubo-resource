@@ -17,12 +17,13 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! https://ppss.kr/
 ! Sep. 5 2021 update
 
+! uBlock filters is working.
 ! Hide ads.
-ygosu.com###left_nav, #right_nav, .main_preview + div, .board_body > :not([class="board_top"]):not([id="pc_main_pop_position"]):not([class="container"]):not([class="option"])
+! ygosu.com###left_nav, #right_nav, .main_preview + div, .board_body > :not([class="board_top"]):not([id="pc_main_pop_position"]):not([class="container"]):not([class="option"])
 ! Fakes elements that are hidden as visible.
-ygosu.com##+js(avotoko-fake-computed-style, #left_nav\, #right_nav\, .main_preview + div\, .board_body > :not([class="board_top"]):not([id="pc_main_pop_position"]):not([class="container"]):not([class="option"]), , display:block)
+! ygosu.com##+js(avotoko-fake-computed-style, #left_nav\, #right_nav\, .main_preview + div\, .board_body > :not([class="board_top"]):not([id="pc_main_pop_position"]):not([class="container"]):not([class="option"]), , display:block)
 ! Protect avotoko-fake-computed-style
-ygosu.com##+js(avotoko-fom, getComputedStyle.toString, "function getComputedStyle(){ [native code] }")
+! ygosu.com##+js(avotoko-fom, getComputedStyle.toString, "function getComputedStyle(){ [native code] }")
 
 ! Hide ads.
 ppss.kr###custom_html-2
