@@ -32,11 +32,11 @@ ppss.kr##+js(avotoko-fake-computed-style, #custom_html-2, , display:block)
 ! Protect avotoko-fake-computed-style
 ppss.kr##+js(avotoko-fom, getComputedStyle.toString, "function getComputedStyle(){ [native code] }")
 
-! ad-shield.io does not display properly without adblock
+! ad-shield.io display is broken with or without adblock.
 ! Hide ad.
-ad-shield.io###demo_button ~ *
+! ad-shield.io###demo_button ~ *
 ! Fakes elements that are hidden as visible.
-ad-shield.io##+js(avotoko-fake-computed-style, #demo_button ~ *, , display:block)
+! ad-shield.io##+js(avotoko-fake-computed-style, #demo_button ~ *, , display:block)
 
 ! https://github.com/uBlockOrigin/uAssets/issues/8489
 ! https://forum.release-apk.com/viewforum.php?f=41
