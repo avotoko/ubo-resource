@@ -977,7 +977,7 @@
 })();
 
 /// avotoko-no-shadow-root.js
-/// alias avotoko-nsd.js
+/// alias avotoko-nosr.js
 (function() {
 	const log = function(){
 		const _log = console.log, concat = Array.prototype.concat, from = Array.from;
@@ -1020,6 +1020,7 @@
 		}
 	}();
 	function parseOptions(s){
+		s = s || "";
 		const available = {
 			"delay": v=> ! isNaN(v*1),
 		};
@@ -1105,3 +1106,306 @@
 	});
 	log("monitoring");
 })();
+
+/// avotoko-fake-xhr.js
+/// alias avotoko-fxhr.js
+(function() {
+	const log = function(){
+		const _log = console.log, concat = Array.prototype.concat, from = Array.from;
+		return function log(){
+			_log.apply(console, concat.call(["[avotoko-fake-xhr]"], from(arguments)));
+		}
+	}();
+	function parseOpts(args){
+		let opts = {};
+		for (let idx = 0 ; idx < args.length ; idx++){
+			let a = args[idx], i= a.indexOf(":"), name = a.substring(0, i).trim(), val = a.substring(i+1).trim();
+			val = /^\d+$/.test(val) ? val * 1 : NaN;
+			if (! ["debug","log","st"].includes(name) || isNaN(val)){ log("error: wrong option:", a); return}
+			opts[name] = val;
+		}
+		return opts;
+	}
+	function parsePattern(s){
+		let m, flag = "";
+		if (! s){ return /(?:)/; }
+		if (m = s.match(/^\/(.*)\/(\w*)$/)){
+			s = m[1], flag = m[2];
+		}
+		else {
+			s = s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+		}
+		try { s = new RegExp(s, flag); }
+		catch (e){ log("RegExp error:", e.message +".", "source:", s, "flags:", flag); return; }
+		return s;
+	}
+	const makeSt = function(){
+		const ua =navigator.userAgent, includes = String.prototype.includes,
+				split = String.prototype.split, slice = Array.prototype.slice,
+				join = Array.prototype.join, _Error = Error;
+		return function makeSt(){
+			let i = includes.call(ua, "Chrome") ? 3 : includes.call(ua, "Firefox")  ? 2 : 2;
+			return join.call(slice.call(split.call(_Error().stack, "\n"), i), "\n");
+		}
+	}();
+	function findPropertyDescriptor(obj, prop, opts){
+		function getObjName(obj){
+			return obj.hasOwnProperty("constructor") ? obj.constructor.name + " Prototype" : obj.name || obj.constructor.name;
+		}
+		let depth = 0;
+		opts = opts || {};
+		opts.debug && log("searching for a descriptor of", prop);
+		if (! prop){ opts.debug && log(depth, ":", "no property name"); return; }
+		while (obj){
+			opts.debug && log(depth, ":", getObjName(obj));
+			if (obj.hasOwnProperty(prop)){
+				let des = Object.getOwnPropertyDescriptor(obj, prop);
+				opts.debug && log("descriptor", des);
+				return des;
+			}
+			obj = obj.prototype || Object.getPrototypeOf(obj);
+			depth++;
+		}
+		opts.debug && log(depth,":","descriptor not found");
+	}
+	function parseFilter(s){
+		if (typeof s === "undefined"){ log("error: no arguments"); return; }
+		let ar = s.split(' ').filter(e=>e), filter = {}, keys = {url:!0, method:!0, body:!0, async:!0};
+		for (let i = 0 ; i < ar.length ; i++){
+			let e = ar[i], idx = e.indexOf(":"),
+				k = idx > -1 ? e.substring(0, idx) : "", v = e.substring(idx+1);
+			! keys[k] && (k = "url", v = e);
+			if (! v){ log("error: filter has no value:", e); return; }
+			if (filter.hasOwnProperty(k)){
+				log("error: filter is already defined:", k,":",v);
+				return;
+			}
+			if (k === "async"){
+				if (! ["true", "false"].includes(v)){
+					log("error: 'async' value must be true or false");
+					return;
+				}
+				v = v === "true";
+			}
+			else {
+				if (! (v = parsePattern(v))){ return; }
+			}
+			filter[k] = v;
+		}
+		return filter;
+	}
+	function parseAction(args){
+		let action = {}, more = [];
+		for (let i = 0 ; i < args.length ; i++){
+			let got, obj = action, a = args[i], idx = a.indexOf(":"),
+				k = idx === -1 ? a : a.substring(0, idx), v = idx > -1 ? a.substring(idx+1) : void 0;
+			if (k === "block"){
+				if (v){ log("error: 'block' must have no value"); return; }
+				v = got = true;
+			}
+			else if (k === "trigger"){
+				try {
+					v = (v || "").split("|").filter(e => {
+						if (!(e = e.trim())){ return false; }
+						if (! findPropertyDescriptor(XMLHttpRequest, "on" + e)){
+							throw Error("xhr doesn't have event: " + e);
+						}
+						return true;
+					});
+				}
+				catch(e){ log("error:", e.message); return; }
+				if (v.length === 0){ log("error: trigger has no event"); return; }
+				got = true;
+			}
+			else if (k.startsWith("set-")){
+				k = k.substring(4), v = (v || "").trim();
+				if (! k){ log("error: 'set-' missed name:", a); return; }
+				if (! v){ log("error: 'set-' missed value:", a); return; }
+				if (k.startsWith("header-")){
+					k = k.substring(7).toLowerCase();
+					obj = action.header = action.header || {};
+					if (! k){ log("error: 'set-header-' missed name:", a); return; }
+				}
+				else {
+					obj = action.set = action.set || {};
+					let m = k.match(/^(response(?:Text)?)(?:-(.*))?/);
+					if (m && m[2]){
+						k = m[1];
+						if (m[2] === "base64"){
+							try { v = atob(v); }
+							catch(e){ log("atob error:", e.message, ":", a); return; }
+						}
+						else {
+							let type = m[2];
+							// data:[<mediatype>][;base64],<data>
+							// /^(data:)([\w\/\+-]*)(;charset=[\w-]+|;base64){0,1},(.*)/gi
+							m = v.match(/^data:(;base64)?,(.+)/);
+							if (k === "responseText"){
+								log("error: responseText support only base64 but not", type); return;
+							}
+							log("error: response support only base64 but not", type); return;
+						}
+					}
+					if (["readyState", "status"].includes(k)){
+						if (isNaN(v = v * 1)){ log("error: value must be number:", a); return; }
+					}
+					let xhr = XMLHttpRequest.prototype;
+					if (! xhr.hasOwnProperty(k)){ log("xhr doesn't have property:", k); return; }
+				}
+				got = true;
+			}
+			if (got){
+				if (obj.hasOwnProperty(k)){
+					log("error: action is already defined:", a);
+					return;
+				}
+				obj[k] = v;
+			}
+			else {
+				if (Object.keys(action).length === 0){ log("error: no actions"); return; }
+				more = args.slice(i);
+				break;
+			}
+		}
+		return {action, more};
+	}
+	let mergeHeader = function(){
+		let split = String.prototype.split, indexOf = String.prototype.indexOf,
+			substring = String.prototype.substring,
+			toLowerCase = String.prototype.toLowerCase;
+		return function mergeHeader(headers){
+			let ah = {};
+			for (let k in action.header){ ah[k] = action.header[k]; }
+			let nh = "", oh = headers ? split.call(headers, "\r\n") : [];
+			for (let i = 0 ; i < oh.length ; i++){
+				if (! oh[i]){ continue; }
+				let h = oh[i], idx = indexOf.call(h, ":"),
+					n = substring.call(h, 0, idx),
+					lwr = toLowerCase.call(n),
+					v = substring.call(h, idx);
+				if (n && ah[lwr]){
+					h = n + ": " + ah[lwr];
+					delete ah[lwr];
+				}
+				nh += h + "\r\n";
+			}
+			for (let k in ah){ nh += k + ": " + ah[k] + "\r\n"; }
+			return nh;
+		}
+	}();
+	log("start on", location.href);
+	let arg = (function(){
+		let a = []; a.push("{{1}}"), a.push("{{2}}"), a.push("{{3}}"), a.push("{{4}}"), a.push("{{5}}"), 
+		a.push("{{6}}"), a.push("{{7}}"), a.push("{{8}}"), a.push("{{9}}"), a.push("{{10}}"),
+		a.push("{{11}}"), a.push("{{12}}"), a.push("{{13}}"), a.push("{{14}}"), a.push("{{15}}");
+		for (let i = 0 ; i < a.length ; i++){ if (a[i] === "{{" + (i+1) + "}}"){ a.splice(i); break; } }
+		return a;
+	})();
+	//arg = ['://ygosu.com/ method:/get/i', 'block', 'trigger:readystatechange', 'set-readyState:4', 'set-status:200', 'set-response-base64:Qk06AAAAAAAAADYAAAAoAAAAAQAAAAEAAAABABgAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==', 'debugger', 'debug:1', 'log:1', 'st:10'];
+	log("arg:", arg);
+	// param: <filters>, <actions>..., <stack trace pattern>, <option>...)
+	let filter = parseFilter(arg[0]);
+	if (! filter){ return; }
+	log("filter:", filter);
+	let {action, more} = parseAction(arg.slice(1)) || {};
+	if (! action){ return; }
+	log("action:", action); 
+	log("more:", more); 
+	let stPattern = parsePattern(more[0]), opts = parseOpts(more.slice(1));
+	if (! (stPattern && opts)){ return; }
+	log("stack trace pattern:", stPattern);
+	log("options:", opts);
+	let obj = XMLHttpRequest.prototype, prop = "open";
+    obj[prop] = new Proxy(obj[prop], {
+        apply: function(){
+			const keys = Object.keys, defineProperty = Object.defineProperty,
+				getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor,
+				forEach = Array.prototype.forEach, every = Array.prototype.every,
+				map = Array.prototype.map, join = Array.prototype.join,
+				slice = Array.prototype.slice, split = String.prototype.split,
+				test = RegExp.prototype.test,
+				toLowerCase = String.prototype.toLowerCase,
+				Reflect_apply = Reflect.apply, _setTimeout = setTimeout,
+				dispatchEvent = XMLHttpRequest.prototype.dispatchEvent,
+				_URL = URL, _Proxy = Proxy, _Event = Event, _ProgressEvent = ProgressEvent;
+			return function(target, thisArg, args ) {
+				let method = args[0], url = new _URL(""+args[1], location.href).href, async = args[2],
+					st = makeSt(),
+					match = test.call(filter.url, url) && test.call(filter.method, method) && test.call(stPattern, st);
+				if (match){
+					thisArg.send = new _Proxy(thisArg.send, {
+						apply: function(target, thisArg, args){
+							let body = args[0], match = function(){
+								if (! filter.body){ return true; }
+								if (args.length === 0){ return false; }
+								try {
+									body = "" + args[0];
+									return test.call(filter.body, body);
+								}
+								catch(e){ log(e.message, 'when "" + args[0]'); return false; };
+							}();
+							if (! match){
+								opts.log && log("send", body, "to", url, (opts.st > 0 ? "\n" + join.call(slice.call(map.call(split.call(st,"\n"), e=>"  "+e), 0, opts.st), "\n") : " "));
+								return Reflect_apply(target, thisArg, args);
+							}
+							log("got xhr.send", body, "to", url);
+							if (action.set){
+								let props = {}, obj = XMLHttpRequest.prototype;
+								for (k in action.set){ props[k] = action.set[k]; }
+								props.responseURL === "*" && (props.responseURL = url);
+								forEach.call(keys(props), k => {
+									let v = props[k], des = getOwnPropertyDescriptor(obj, k);
+									if (des && ! des.configurable){
+										log("error: xhr." + k, "is not configurable");
+										return;
+									}
+									defineProperty(thisArg, k, {
+										get(){ log("faked xhr." + k); return v; }
+									});
+								});
+							}
+							if (action.header){
+								forEach.call(["getResponseHeader", "getAllResponseHeaders"], prop=>{
+									thisArg[prop] = new Proxy(thisArg[prop], {
+										apply: function(target, thisArg, args){
+											if (prop === "getResponseHeader"){
+												let v = action.header[toLowerCase.call(args[0])];
+												if (v){
+													log("faked", prop, args[0]);
+													return v;
+												}
+												return Reflect_apply(target, thisArg, args);
+											}
+											else {
+												let v = Reflect_apply(target, thisArg, args);
+												return mergeHeader(v);
+											}
+										},
+									});
+								});
+							}
+							if (! action.block){
+								return Reflect_apply(target, thisArg, args);
+							}
+							log("blocked xhr", method, url);
+							action.trigger && forEach.call(action.trigger, eventName=>{
+								log("faked event", eventName);
+								_setTimeout((thisArg, eventName)=>{
+									let Ev = eventName === "readystatechange" ? _Event : _ProgressEvent; 
+									dispatchEvent.call(thisArg, new Ev(eventName));
+								}, 10, thisArg, eventName);
+							});
+						}
+					});
+					log("monitoring xhr.send to", url);
+				}
+				else {
+					opts.log && log(prop, method, url, async, (opts.st > 0 ? "\n" + join.call(slice.call(map.call(split.call(st,"\n"), e=>"  "+e), 0, opts.st), "\n") : " "));
+				}
+				return Reflect_apply(target, thisArg, args);
+			}
+		}(),
+    });
+	log("monitoring");
+})();
+
