@@ -26,6 +26,13 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! ygosu.com##+js(avotoko-fom, getComputedStyle.toString, "function getComputedStyle(){ [native code] }")
 
 ! Hide ads.
+m.ygosu.com###view_center_ad, #view_bottom_ad
+! Hide alternative ads.
+m.ygosu.com##+js(avotoko-no-shadow-root)
+! Protect avotoko-no-shadow-root
+m.ygosu.com##+js(avotoko-fom, Element.prototype.attachShadow.toString, "function attachShadow(){ [native code] }")
+
+! Hide ads.
 ppss.kr###custom_html-2
 ! Fakes elements that are hidden as visible.
 ppss.kr##+js(avotoko-fake-computed-style, #custom_html-2, , display:block)
