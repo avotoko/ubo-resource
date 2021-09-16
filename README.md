@@ -15,35 +15,24 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! https://ad-shield.io/en/
 ! https://ygosu.com/
 ! https://ppss.kr/
-! Sep. 5 2021 update
+! Sep. 16 2021 update
 
-! uBlock filters is working.
-! Hide ads.
-! ygosu.com###left_nav, #right_nav, .main_preview + div, .board_body > :not([class="board_top"]):not([id="pc_main_pop_position"]):not([class="container"]):not([class="option"])
-! Fakes elements that are hidden as visible.
-! ygosu.com##+js(avotoko-fake-computed-style, #left_nav\, #right_nav\, .main_preview + div\, .board_body > :not([class="board_top"]):not([id="pc_main_pop_position"]):not([class="container"]):not([class="option"]), , display:block)
-! Protect avotoko-fake-computed-style
-! ygosu.com##+js(avotoko-fom, getComputedStyle.toString, "function getComputedStyle(){ [native code] }")
-
-! Hide ads.
-m.ygosu.com###view_center_ad, #view_bottom_ad
 ! Hide alternative ads.
-m.ygosu.com##+js(avotoko-no-shadow-root)
+ygosu.com##+js(avotoko-no-shadow-root)
 ! Protect avotoko-no-shadow-root
-m.ygosu.com##+js(avotoko-fom, Element.prototype.attachShadow.toString, "function attachShadow(){ [native code] }")
+ygosu.com##+js(avotoko-fom, Element.prototype.attachShadow.toString, "function attachShadow(){ [native code] }")
 
 ! Hide ads.
 ppss.kr###custom_html-2
-! Fakes elements that are hidden as visible.
-ppss.kr##+js(avotoko-fake-computed-style, #custom_html-2, , display:block)
-! Protect avotoko-fake-computed-style
-ppss.kr##+js(avotoko-fom, getComputedStyle.toString, "function getComputedStyle(){ [native code] }")
+! Hide alternative ads.
+ppss.kr##+js(avotoko-no-shadow-root)
+! Protect avotoko-no-shadow-root
+ppss.kr##+js(avotoko-fom, Element.prototype.attachShadow.toString, "function attachShadow(){ [native code] }")
 
-! ad-shield.io display is broken with or without adblock.
-! Hide ad.
-! ad-shield.io###demo_button ~ *
-! Fakes elements that are hidden as visible.
-! ad-shield.io##+js(avotoko-fake-computed-style, #demo_button ~ *, , display:block)
+! Hide alternative ads.
+ad-shield.io##+js(avotoko-no-shadow-root)
+! Protect avotoko-no-shadow-root
+ad-shield.io##+js(avotoko-fom, Element.prototype.attachShadow.toString, "function attachShadow(){ [native code] }")
 
 ! https://github.com/uBlockOrigin/uAssets/issues/8489
 ! https://forum.release-apk.com/viewforum.php?f=41
