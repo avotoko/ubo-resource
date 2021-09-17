@@ -15,19 +15,21 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! https://ad-shield.io/en/
 ! https://ygosu.com/
 ! https://ppss.kr/
-! Sep. 16 2021 update
+! Sep. 17 2021 update
 
+! uBlock filters is working.
 ! Hide alternative ads.
-ygosu.com##+js(avotoko-no-shadow-root)
+! ygosu.com##+js(avotoko-no-shadow-root)
 ! Protect avotoko-no-shadow-root
-ygosu.com##+js(avotoko-fom, Element.prototype.attachShadow.toString, "function attachShadow(){ [native code] }")
+! ygosu.com##+js(avotoko-fom, Element.prototype.attachShadow.toString, "function attachShadow(){ [native code] }")
 
 ! Hide ads.
 ppss.kr###custom_html-2
+! uBlock filters is working.
 ! Hide alternative ads.
-ppss.kr##+js(avotoko-no-shadow-root)
+! ppss.kr##+js(avotoko-no-shadow-root)
 ! Protect avotoko-no-shadow-root
-ppss.kr##+js(avotoko-fom, Element.prototype.attachShadow.toString, "function attachShadow(){ [native code] }")
+! ppss.kr##+js(avotoko-fom, Element.prototype.attachShadow.toString, "function attachShadow(){ [native code] }")
 
 ! Hide alternative ads.
 ad-shield.io##+js(avotoko-no-shadow-root)
