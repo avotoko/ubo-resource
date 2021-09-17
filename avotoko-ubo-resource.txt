@@ -1192,6 +1192,8 @@
 			}
 			filter[k] = v;
 		}
+		if (! filter["url"]){ filter["url"] = parsePattern(); }
+		if (! filter["method"]){ filter["method"] = parsePattern(); }
 		return filter;
 	}
 	function parseAction(args){
