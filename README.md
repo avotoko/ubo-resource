@@ -15,19 +15,16 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! https://ad-shield.io/en/
 ! https://ygosu.com/
 ! https://ppss.kr/
-! Sep. 27 2021 update
+! Oct. 4 2021 update
 
-! Hide alternative ads.
-ygosu.com##+js(avotoko-no-shadow-root)
-! Protect avotoko-no-shadow-root
-ygosu.com##+js(avotoko-fom, Element.prototype.attachShadow.toString, "function attachShadow(){ [native code] }")
-
+! disable not working filter
+ppss.kr,ygosu.com#@#+js(aost, XMLHttpRequest.prototype.send, /th:\d+\s+[a-zA-Z]\d\/<@[^\t]+\t\s[a-zA-Z]\d@|th:\d+\s+in[a-zA-Z\d:;]+\t\s[a-zA-Z]\d\si/)
+! block alternative ads.
+ppss.kr,ygosu.com##+js(yaaost, Element.prototype.attachShadow, /th:\d+\s+[a-zA-Z]{2}\/<\/[a-z.]+<\/<@|\t\s[a-zA-Z]{2}\.<[a-z]+>/)
+! prevent them for removing content images.
+ppss.kr,ygosu.com##+js(yaaost, Element.prototype.removeAttribute, /\t\s[a-zA-Z]{2}\/<\/<\/<@|(\t\sObject+\.[a-zA-Z]+ [:a-zA-Z\d]+){3}/)
 ! Hide ads.
 ppss.kr###custom_html-2
-! Hide alternative ads.
-ppss.kr##+js(avotoko-no-shadow-root)
-! Protect avotoko-no-shadow-root
-ppss.kr##+js(avotoko-fom, Element.prototype.attachShadow.toString, "function attachShadow(){ [native code] }")
 
 ! Hide alternative ads.
 ad-shield.io##+js(avotoko-no-shadow-root)
