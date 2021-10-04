@@ -1411,3 +1411,203 @@
 	log("monitoring");
 })();
 
+/// yet-another-abort-on-stack-trace.js
+/// alias yaaost.js
+// Very experimental
+(function() {
+    let chain = '{{1}}';
+    let needle = '{{2}}';
+    let logLevel = '{{3}}';
+    let opts = '{{4}}';
+    //chain = 'btoa', needle = '/debugger|injectedScript/', logLevel = '1', opts = 'debug:1';
+    const reRegexEscape = /[.*+?^${}()|[\]\\]/g;
+    if ( needle === '' || needle === '{{2}}' ) {
+        needle = '^';
+    } else if ( /^\/.+\/$/.test(needle) ) {
+        needle = needle.slice(1,-1);
+    } else {
+        needle = needle.replace(reRegexEscape, '\\$&');
+    }
+    for (let a = opts.split(" "), i = (opts = {}, 0) ; i < a.length ; i++){
+        let kv = a[i], idx = kv.indexOf(':'), k = kv.substring(0, idx), v = kv.substring(idx + 1);
+        if (! k){ continue; }
+        if (k === "protectionDepth" || k === "stackDepth"){
+            Number.isInteger(v = v * 1) && (opts[k] =  v);
+        }
+        else {
+            opts[k] =  v;
+        }
+    }
+    const reNeedle = new RegExp(needle);
+    const magic = String.fromCharCode(Math.random() * 26 + 97) +
+        Math.floor(
+            (0.25 + Math.random() * 0.75) * Number.MAX_SAFE_INTEGER
+        ).toString(36).slice(-8);
+    const log = console.log.bind(console);
+    const ErrorCtor = self.Error;
+    const stackDesc = Object.getOwnPropertyDescriptor(Error.prototype, "stack"),
+            _stackTraceLimit = Error.stackTraceLimit,
+            _prepareStackTrace = Error.prepareStackTrace,
+            _exec = RegExp.prototype.exec,
+            _test = RegExp.prototype.test,
+            _includes = String.prototype.includes,
+            _indexOf = String.prototype.indexOf,
+            _replace = String.prototype.replace,
+            _slice = String.prototype.slice,
+            _split = String.prototype.split,
+            _startsWith = String.prototype.startsWith,
+            _trim = String.prototype.trim,
+            _forEach = Array.prototype.forEach;
+            _join = Array.prototype.join,
+            _push = Array.prototype.push,
+            _defineProperty = Object.defineProperty,
+            _getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor,
+            _getOwnPropertyNames = Object.getOwnPropertyNames,
+            _bind = Function.prototype.bind,
+            _toString = Function.prototype.toString,
+            _toLocaleString = Function.prototype.toLocaleString,
+            _Reflect_apply = Reflect.apply,
+            _Reflect_construct = Reflect.construct;
+            _dummy = void 0;
+    const mustAbort = function(err) {
+        let docURL = self.location.href;
+        const pos = _indexOf.call(docURL, '#');
+        if ( pos !== -1 ) {
+            docURL = _slice.call(docURL, 0, pos);
+        }
+        // Normalize stack trace
+        const lines = [];
+        const _stack = stackDesc ? stackDesc.get.call(err) : err.stack;
+        for ( let line of _split.call(_stack, /[\n\r]+/) ) {
+            if ( _includes.call(line, magic) ) { continue; }
+            line = _trim.call(line);
+            let match = _exec.call(/(.*?@)?(\S+)(:\d+):\d+\)?$/, line);
+            if ( match === null ) { continue; }
+            let url = match[2];
+            if ( _startsWith.call(url, '(') ) { url = _slice.call(url, 1); }
+            if ( url === docURL ) {
+                url = 'inlineScript';
+            } else if ( _startsWith.call(url, '<anonymous>') ) {
+                url = 'injectedScript';
+            }
+            let fn = match[1] !== undefined
+                ? _slice.call(match[1], 0, -1)
+                : _trim.call(_slice.call(line, 0, match.index));
+            if ( _startsWith.call(fn, 'at') ) { fn = _trim.call(_slice.call(fn, 2)); }
+            let rowcol = match[3];
+            lines.push(' ' + _trim.call(`${fn} ${url}${rowcol}:1`));
+        }
+        lines[0] = `stackDepth:${lines.length-1}`;
+        const stack = _join.call(lines, '\t');
+        const r = _test.call(reNeedle, stack);
+        if (
+            logLevel === '1' ||
+            logLevel === '2' && r ||
+            logLevel === '3' && !r
+        ) {
+            log(_replace.call(stack, /\t/g, '\n'));
+        }
+        return r;
+    };
+    const patchedFunc = {};
+    const patch = function (obj, prop, callback, opts){
+        opts = opts || {};
+        const log = console.log;
+        const org = _getOwnPropertyDescriptor(obj, prop), copy = {};
+        if (! org){ log("[yaaost] error: no own property", prop, "in", obj); return; }
+        log("[yaaost] property descriptor of", prop + ":", org);
+        let patched;
+        for (let k in org){
+            copy[k] = org[k];
+            if (typeof org[k] === "function"){
+                log("[yaaost] patching descriptor." + k);
+                patched = true;
+                copy[k] = (function(){
+                    let temp = {
+                        [org[k].name]: function(){
+                            const _stl = ErrorCtor.stackTraceLimit, _pst = ErrorCtor.prepareStackTrace;
+                            ErrorCtor.stackTraceLimit = "stackDepth" in opts ? opts.stackDepth : _stackTraceLimit,
+                            ErrorCtor.prepareStackTrace = _prepareStackTrace;
+                            const err = new ErrorCtor(magic);
+                            ErrorCtor.stackTraceLimit = _stl, ErrorCtor.prepareStackTrace = _pst;
+                            return callback(org[k], this, arguments, new.target, err, new ReferenceError(magic));
+                        },
+                    };
+                    _forEach.call(_getOwnPropertyNames(org[k]), prop=>{
+                        temp[org[k].name][prop] = org[k][prop];
+                    });
+                    temp[org[k].name].toString = _bind.call(org[k].toString, org[k]);
+                    temp[org[k].name].toLocaleString = _bind.call(org[k].toLocaleString, org[k]);
+                    _defineProperty(temp[org[k].name].toLocaleString, "name", { value: "toLocaleString" });
+                    temp[org[k].name].toLocaleString.toString = _bind.call(Function.prototype.toString, org[k].toLocaleString);
+                    const depth = "protectionDepth" in opts ? opts.protectionDepth : 2;
+                    log("[yaaost] protection depth:", depth);
+                    for (let obj = temp[org[k].name].toString, 
+                        obj2 = temp[org[k].name].toLocaleString.toString, 
+                        toString = _bind.call(_toString, _toString),
+                        i = 0 ; i < depth ; obj = obj.toString, obj2 = obj2.toString, i++){
+                        _defineProperty(obj, "name", { value: "toString" });
+                        obj.toString = toString;
+                        _defineProperty(obj2, "name", { value: "toString" });
+                        obj2.toString = toString;
+                    }
+                    return temp[org[k].name];
+                })();
+                patchedFunc[copy[k]] = org[k];
+            }
+        }
+        if (! patched){
+            log("[yaaost] error: descriptor has no get/set/value");
+            return;
+        }
+        log("[yaaost] defineProperty", prop, copy);
+        _defineProperty(obj, prop, copy);
+    };
+    (function(){
+        ["assign", "entries", "getOwnPropertyDescriptor", "getOwnPropertyDescriptors", "getOwnPropertyNames", "getOwnPropertySymbols", "getPrototypeOf", "hasOwn", "is", "keys", "values"].forEach(prop => {
+            patch(Object, prop, function(target, thisArg, arguments, newTarget){
+                for (let i = 0 ; i < arguments.length ; i++){
+                    patchedFunc[arguments[i]] && (arguments[i] = patchedFunc[arguments[i]]);
+                }
+                return _Reflect_apply(target, thisArg, arguments);
+            });
+        });
+        ["hasOwnProperty", "propertyIsEnumerable"].forEach(prop => {
+            patch(Object.prototype, prop, function(target, thisArg, arguments, newTarget){
+                patchedFunc[thisArg] && (thisArg = target);
+                return _Reflect_apply(target, thisArg, arguments);
+            });
+        });
+    })();
+    const makeProxy = function(owner, chain) {
+        const pos = chain.indexOf('.');
+        if ( pos === -1 ) {
+            patch(owner, chain, function(target, thisArg, arguments, newTarget, err, refErr){
+                if ( mustAbort(err) ) {
+                    throw refErr;
+                }
+                return newTarget ? _Reflect_construct(target, arguments, newTarget) : _Reflect_apply(target, thisArg, arguments);
+            }, opts);
+            return;
+        }
+        const prop = chain.slice(0, pos);
+        let v = owner[prop];
+        chain = chain.slice(pos + 1);
+        if ( v ) {
+            makeProxy(v, chain);
+            return;
+        }
+        log("[yaaost] error: no property", prop, "in", owner);
+    };
+    const owner = window;
+    makeProxy(owner, chain);
+    const oe = window.onerror;
+    window.onerror = function(msg, src, line, col, error) {
+        if ( typeof msg === 'string' && msg.indexOf(magic) !== -1 ) {
+            return true;
+        }
+        if ( oe instanceof Function ) {
+            return oe(msg, src, line, col, error);
+        }
+    }.bind();
+})();
