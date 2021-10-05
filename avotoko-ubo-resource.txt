@@ -1544,7 +1544,6 @@
 	}
     const patch = function (obj, prop, callback, opts){
         opts = opts || {};
-        const log = console.log;
         const org = _getOwnPropertyDescriptor(obj, prop), copy = {};
         if (! org){ log("[yaaost] error: no own property", prop, "in", obj); return; }
         log("[yaaost] property descriptor of", prop + ":", org);
@@ -1567,28 +1566,28 @@
     };
     (function(){
         ["entries", "getOwnPropertyDescriptor", "getOwnPropertyDescriptors", "getOwnPropertyNames", "getOwnPropertySymbols", "getPrototypeOf", "hasOwn", "is", "keys", "values"].forEach(prop => {
-            patch(Object, prop, function(target, thisArg, arguments, newTarget){
-                for (let i = 0 ; i < arguments.length ; i++){
-                    patchedFunc[arguments[i]] && (arguments[i] = patchedFunc[arguments[i]]);
+            patch(Object, prop, function(target, thisArg, args, newTarget){
+                for (let i = 0 ; i < args.length ; i++){
+                    patchedFunc[args[i]] && (args[i] = patchedFunc[args[i]]);
                 }
-                return _Reflect_apply(target, thisArg, arguments);
+                return _Reflect_apply(target, thisArg, args);
             });
         });
         ["hasOwnProperty", "propertyIsEnumerable"].forEach(prop => {
-            patch(Object.prototype, prop, function(target, thisArg, arguments, newTarget){
+            patch(Object.prototype, prop, function(target, thisArg, args, newTarget){
                 patchedFunc[thisArg] && (thisArg = target);
-                return _Reflect_apply(target, thisArg, arguments);
+                return _Reflect_apply(target, thisArg, args);
             });
         });
     })();
     const makeProxy = function(owner, chain) {
         const pos = chain.indexOf('.');
         if ( pos === -1 ) {
-            patch(owner, chain, function(target, thisArg, arguments, newTarget, err, refErr){
+            patch(owner, chain, function(target, thisArg, args, newTarget, err, refErr){
                 if ( mustAbort(err) ) {
                     throw refErr;
                 }
-                return newTarget ? _Reflect_construct(target, arguments, newTarget) : _Reflect_apply(target, thisArg, arguments);
+                return newTarget ? _Reflect_construct(target, args, newTarget) : _Reflect_apply(target, thisArg, args);
             }, opts);
             return;
         }
