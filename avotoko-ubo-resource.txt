@@ -1411,8 +1411,8 @@
 	log("monitoring");
 })();
 
-/// yet-another-abort-on-stack-trace.js
-/// alias yaaost.js
+/// avotoko-yet-another-abort-on-stack-trace.js
+/// alias avotoko-yaaost.js
 // Very experimental
 (function() {
     let chain = '{{1}}';
