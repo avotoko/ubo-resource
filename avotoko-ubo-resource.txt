@@ -1510,6 +1510,38 @@
         return r;
     };
     const patchedFunc = {};
+	const patchFunc = function(target, callback, opts){
+		log("[yaaost] patching function:", target.name);
+		let temp = {
+			[target.name]: function(){
+				const _stl = ErrorCtor.stackTraceLimit, _pst = ErrorCtor.prepareStackTrace;
+				ErrorCtor.stackTraceLimit = "stackDepth" in opts ? opts.stackDepth : _stackTraceLimit,
+				ErrorCtor.prepareStackTrace = _prepareStackTrace;
+				const err = new ErrorCtor(magic);
+				ErrorCtor.stackTraceLimit = _stl, ErrorCtor.prepareStackTrace = _pst;
+				return callback(target, this, arguments, new.target, err, new ReferenceError(magic));
+			},
+		}, copy = temp[target.name];
+		_forEach.call(_getOwnPropertyNames(target), prop=>{
+			copy[prop] = target[prop];
+		});
+		_defineProperty(copy, "toString", { value: _bind.call(target.toString, target) });
+		_defineProperty(copy, "toLocaleString", { value: _bind.call(target.toLocaleString, target) });
+        _defineProperty(copy.toLocaleString, "name", { value: "toLocaleString" });
+		_defineProperty(copy.toLocaleString, "toString", { value: _bind.call(Function.prototype.toString, target.toLocaleString) });
+		const depth = "protectionDepth" in opts ? opts.protectionDepth : 2;
+		log("[yaaost] protection depth:", depth);
+		for (let obj = copy.toString, 
+			obj2 = copy.toLocaleString.toString, 
+			toString = _bind.call(_toString, _toString),
+			i = 0 ; i < depth ; obj = obj.toString, obj2 = obj2.toString, i++){
+			_forEach.call([obj, obj2], obj=>{
+				_defineProperty(obj, "name", { value: "toString" });
+				_defineProperty(obj, "toString", { value: toString });
+			});
+		}
+		return copy;
+	}
     const patch = function (obj, prop, callback, opts){
         opts = opts || {};
         const log = console.log;
@@ -1522,37 +1554,7 @@
             if (typeof org[k] === "function"){
                 log("[yaaost] patching descriptor." + k);
                 patched = true;
-                copy[k] = (function(){
-                    let temp = {
-                        [org[k].name]: function(){
-                            const _stl = ErrorCtor.stackTraceLimit, _pst = ErrorCtor.prepareStackTrace;
-                            ErrorCtor.stackTraceLimit = "stackDepth" in opts ? opts.stackDepth : _stackTraceLimit,
-                            ErrorCtor.prepareStackTrace = _prepareStackTrace;
-                            const err = new ErrorCtor(magic);
-                            ErrorCtor.stackTraceLimit = _stl, ErrorCtor.prepareStackTrace = _pst;
-                            return callback(org[k], this, arguments, new.target, err, new ReferenceError(magic));
-                        },
-                    };
-                    _forEach.call(_getOwnPropertyNames(org[k]), prop=>{
-                        temp[org[k].name][prop] = org[k][prop];
-                    });
-                    temp[org[k].name].toString = _bind.call(org[k].toString, org[k]);
-                    temp[org[k].name].toLocaleString = _bind.call(org[k].toLocaleString, org[k]);
-                    _defineProperty(temp[org[k].name].toLocaleString, "name", { value: "toLocaleString" });
-                    temp[org[k].name].toLocaleString.toString = _bind.call(Function.prototype.toString, org[k].toLocaleString);
-                    const depth = "protectionDepth" in opts ? opts.protectionDepth : 2;
-                    log("[yaaost] protection depth:", depth);
-                    for (let obj = temp[org[k].name].toString, 
-                        obj2 = temp[org[k].name].toLocaleString.toString, 
-                        toString = _bind.call(_toString, _toString),
-                        i = 0 ; i < depth ; obj = obj.toString, obj2 = obj2.toString, i++){
-                        _defineProperty(obj, "name", { value: "toString" });
-                        obj.toString = toString;
-                        _defineProperty(obj2, "name", { value: "toString" });
-                        obj2.toString = toString;
-                    }
-                    return temp[org[k].name];
-                })();
+                copy[k] = patchFunc(org[k], callback, opts);
                 patchedFunc[copy[k]] = org[k];
             }
         }
@@ -1564,7 +1566,7 @@
         _defineProperty(obj, prop, copy);
     };
     (function(){
-        ["assign", "entries", "getOwnPropertyDescriptor", "getOwnPropertyDescriptors", "getOwnPropertyNames", "getOwnPropertySymbols", "getPrototypeOf", "hasOwn", "is", "keys", "values"].forEach(prop => {
+        ["entries", "getOwnPropertyDescriptor", "getOwnPropertyDescriptors", "getOwnPropertyNames", "getOwnPropertySymbols", "getPrototypeOf", "hasOwn", "is", "keys", "values"].forEach(prop => {
             patch(Object, prop, function(target, thisArg, arguments, newTarget){
                 for (let i = 0 ; i < arguments.length ; i++){
                     patchedFunc[arguments[i]] && (arguments[i] = patchedFunc[arguments[i]]);
