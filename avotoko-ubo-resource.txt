@@ -1046,7 +1046,7 @@
 		for (let i = 0 ; i < a.length ; i++){ if (a[i] === "{{" + (i+1) + "}}"){ a.splice(i); break; } }
 		return a;
 	})();
-	//arg = ['div', 'delay:100', 'debugger', 'debug:1', 'log:1', 'st:10'];
+	//arg = []; //arg = ['div', 'delay:100', 'debugger', 'debug:1', 'log:1', 'st:10'];
 	log("arg:", arg);
 	// param: <selector>, <options>, <stack trace pattern>, <option>...)
 	let sel = arg[0] || "*", options = arg[1], stPattern = arg[2], opts = parseOpts(arg.slice(3));
@@ -1081,29 +1081,104 @@
 		});
 		return observer.observe.bind(observer);
 	}();
-	let obj = Element.prototype, prop = "attachShadow";
-	obj[prop] = new Proxy(obj[prop], {
-		apply: function(){
-			const Reflect_apply = Reflect.apply,
-					matches = Element.prototype.matches,  test = RegExp.prototype.test,
-					join = Array.prototype.join, slice = Array.prototype.slice,
-					map = Array.prototype.map, split = String.prototype.split;
-			return function(target, thisArg, args) {
-				let v = Reflect_apply(target, thisArg, args), st = makeSt(); 
-				try {
-					if (matches.call(thisArg, sel) && test.call(stPattern, st)){
-						opts.log && log("observing", thisArg, "ShadowRoot", v);
-						observe(v, {childList: true});
-					}
-					else {
-						opts.log && log(thisArg, prop, "init:", args[0], (opts.st > 0 ? "\n" + join.call(slice.call(map.call(split.call(st,"\n"), e=>"  "+e), 0, opts.st), "\n") : " "));
-					}
-				}
-				catch(e){ log(e.type || "error", ":", e.message, ":", sel) }; 
-				return v;
+	const patch = (function(){
+		const _forEach = Array.prototype.forEach;
+				_defineProperty = Object.defineProperty,
+				_getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor,
+				_getOwnPropertyNames = Object.getOwnPropertyNames,
+				_bind = Function.prototype.bind,
+				_toString = Function.prototype.toString,
+				_toLocaleString = Function.prototype.toLocaleString,
+				_Reflect_apply = Reflect.apply;
+		const patchedFunc = {};
+		const patchFunc = function(target, callback, opts){
+			opts = opts || {};
+			opts.debug && log("[patch] patching function:", target.name);
+			let temp = {
+				[target.name]: function(){
+					return callback(target, this, arguments, new.target);
+				},
+			}, copy = temp[target.name];
+			_forEach.call(_getOwnPropertyNames(target), prop=>{
+				copy[prop] = target[prop];
+			});
+			_defineProperty(copy, "toString", { value: _bind.call(target.toString, target) });
+			_defineProperty(copy, "toLocaleString", { value: _bind.call(target.toLocaleString, target) });
+			_defineProperty(copy.toLocaleString, "name", { value: "toLocaleString" });
+			_defineProperty(copy.toLocaleString, "toString", { value: _bind.call(Function.prototype.toString, target.toLocaleString) });
+			const depth = "protectionDepth" in opts ? opts.protectionDepth : 2;
+			opts.debug && log("[patch] protection depth:", depth);
+			for (let obj = copy.toString, 
+				obj2 = copy.toLocaleString.toString, 
+				toString = _bind.call(_toString, _toString),
+				i = 0 ; i < depth ; obj = obj.toString, obj2 = obj2.toString, i++){
+				_forEach.call([obj, obj2], obj=>{
+					_defineProperty(obj, "name", { value: "toString" });
+					_defineProperty(obj, "toString", { value: toString });
+				});
 			}
-		}(),
-	});
+			return copy;
+		}
+		const patch = function (obj, prop, callback, opts){
+			opts = opts || {};
+			const org = _getOwnPropertyDescriptor(obj, prop), copy = {};
+			if (! org){ opts.debug && log("[patch] error: no own property", prop, "in", obj); return; }
+			opts.debug && log("[patch] property descriptor of", prop + ":", org);
+			let patched;
+			for (let k in org){
+				copy[k] = org[k];
+				if (typeof org[k] === "function"){
+					opts.debug && log("[patch] patching descriptor." + k);
+					patched = true;
+					copy[k] = patchFunc(org[k], callback, opts);
+					patchedFunc[copy[k]] = org[k];
+				}
+			}
+			if (! patched){
+				opts.debug && log("[patch] error: descriptor has no get/set/value");
+				return;
+			}
+			opts.debug && log("[patch] defineProperty", prop, copy);
+			_defineProperty(obj, prop, copy);
+		};
+		(function(){
+			["entries", "getOwnPropertyDescriptor", "getOwnPropertyDescriptors", "getOwnPropertyNames", "getOwnPropertySymbols", "getPrototypeOf", "hasOwn", "is", "keys", "values"].forEach(prop => {
+				patch(Object, prop, function(target, thisArg, args, newTarget){
+					for (let i = 0 ; i < args.length ; i++){
+						patchedFunc[args[i]] && (args[i] = patchedFunc[args[i]]);
+					}
+					return _Reflect_apply(target, thisArg, args);
+				});
+			});
+			["hasOwnProperty", "propertyIsEnumerable"].forEach(prop => {
+				patch(Object.prototype, prop, function(target, thisArg, args, newTarget){
+					patchedFunc[thisArg] && (thisArg = target);
+					return _Reflect_apply(target, thisArg, args);
+				});
+			});
+		})();
+		return patch;
+	})();
+	patch(Element.prototype, "attachShadow", (function(){
+		const Reflect_apply = Reflect.apply,
+				matches = Element.prototype.matches,  test = RegExp.prototype.test,
+				join = Array.prototype.join, slice = Array.prototype.slice,
+				map = Array.prototype.map, split = String.prototype.split;
+		return function(target, thisArg, args, newTarget){
+			let v = Reflect_apply(target, thisArg, args), st = makeSt(); 
+			try {
+				if (matches.call(thisArg, sel) && test.call(stPattern, st)){
+					opts.log && log("observing", thisArg, "ShadowRoot", v);
+					observe(v, {childList: true});
+				}
+				else {
+					opts.log && log(thisArg, prop, "init:", args[0], (opts.st > 0 ? "\n" + join.call(slice.call(map.call(split.call(st,"\n"), e=>"  "+e), 0, opts.st), "\n") : " "));
+				}
+			}
+			catch(e){ log(e.type || "error", ":", e.message, ":", sel) }; 
+			return v;
+		};
+	})(), opts);
 	log("monitoring");
 })();
 
