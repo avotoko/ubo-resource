@@ -28,8 +28,6 @@ ppss.kr###custom_html-2
 
 ! Hide alternative ads.
 ad-shield.io##+js(avotoko-no-shadow-root)
-! Protect avotoko-no-shadow-root
-ad-shield.io##+js(avotoko-fom, Element.prototype.attachShadow.toString, "function attachShadow(){ [native code] }")
 
 ! https://github.com/uBlockOrigin/uAssets/issues/8489
 ! https://forum.release-apk.com/viewforum.php?f=41
