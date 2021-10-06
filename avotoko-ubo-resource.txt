@@ -1082,7 +1082,7 @@
 		return observer.observe.bind(observer);
 	}();
 	const patch = (function(){
-		const _forEach = Array.prototype.forEach;
+		const _forEach = Array.prototype.forEach,
 				_defineProperty = Object.defineProperty,
 				_getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor,
 				_getOwnPropertyNames = Object.getOwnPropertyNames,
