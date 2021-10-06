@@ -1520,9 +1520,9 @@
         ).toString(36).slice(-8);
     const log = console.log.bind(console);
     const ErrorCtor = self.Error;
-    const stackDesc = Object.getOwnPropertyDescriptor(Error.prototype, "stack"),
-            _stackTraceLimit = Error.stackTraceLimit,
-            _prepareStackTrace = Error.prepareStackTrace,
+    const stackDesc = Object.getOwnPropertyDescriptor(ErrorCtor.prototype, "stack"),
+            _stackTraceLimit = ErrorCtor.stackTraceLimit,
+            _prepareStackTrace = ErrorCtor.prepareStackTrace,
             _exec = RegExp.prototype.exec,
             _test = RegExp.prototype.test,
             _includes = String.prototype.includes,
