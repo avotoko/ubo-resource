@@ -15,16 +15,23 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! https://ad-shield.io/en/
 ! https://ygosu.com/
 ! https://ppss.kr/
-! Oct. 4 2021 update
+! Oct. 7 2021 update
 
 ! disable not working filter
-ppss.kr,ygosu.com#@#+js(aost, XMLHttpRequest.prototype.send, /th:\d+\s+[a-zA-Z]\d\/<@[^\t]+\t\s[a-zA-Z]\d@|th:\d+\s+in[a-zA-Z\d:;]+\t\s[a-zA-Z]\d\si/)
+ygosu.com#@#+js(aost, XMLHttpRequest.prototype.send, /th:\d+\s+[a-zA-Z]\d\/<@[^\t]+\t\s[a-zA-Z]\d@|th:\d+\s+in[a-zA-Z\d:;]+\t\s[a-zA-Z]\d\si/)
 ! block alternative ads.
-ppss.kr,ygosu.com##+js(avotoko-yaaost, Element.prototype.attachShadow, /th:\d+\s+[a-zA-Z]{2}\/<\/[a-z.]+<\/<@|\t\s[a-zA-Z]{2}\.<[a-z]+>/)
+ygosu.com##+js(avotoko-yaaost, Element.prototype.attachShadow, /th:\d+\s+[a-zA-Z]{2}\/<\/[a-z.]+<\/<@|\t\s[a-zA-Z]{2}\.<[a-z]+>/)
 ! prevent them for removing content images.
-ppss.kr,ygosu.com##+js(avotoko-yaaost, Element.prototype.removeAttribute, /\t\s[a-zA-Z]{2}\/<\/<\/<@|(\t\sObject+\.[a-zA-Z]+ [:a-zA-Z\d]+){3}/)
+ygosu.com##+js(avotoko-yaaost, Element.prototype.removeAttribute, /\t\s[a-zA-Z]{2}\/<\/<\/<@|(\t\sObject+\.[a-zA-Z]+ [:a-zA-Z\d]+){3}/)
+
+! disable not working filter
+ppss.kr#@#+js(aost, XMLHttpRequest.prototype.send, /th:\d+\s+[a-zA-Z]\d\/<@[^\t]+\t\s[a-zA-Z]\d@|th:\d+\s+in[a-zA-Z\d:;]+\t\s[a-zA-Z]\d\si/)
 ! Hide ads.
 ppss.kr###custom_html-2
+! Terminate the script before loading alternative ads.
+ppss.kr##+js(avotoko-aom, Promise, /attr IMG\.\S+ src old:data:\S+ new:http|add DIV#ad-unit/)
+! To output the mutation log, append ',,log:1' to the end.
+! ppss.kr##+js(avotoko-aom, Promise, /attr IMG\.\S+ src old:data:\S+ new:http|add DIV#ad-unit/,,log:1)
 
 ! Hide alternative ads.
 ad-shield.io##+js(avotoko-no-shadow-root)
