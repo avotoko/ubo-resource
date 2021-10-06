@@ -1686,3 +1686,281 @@
         }
     }.bind();
 })();
+
+/// avotoko-abort-on-mutation.js
+/// alias avotoko-aom.js
+(function() {
+	const log = function(){
+		const _log = console.log, concat = Array.prototype.concat, from = Array.from;
+		return function log(){
+			_log.apply(console, concat.call(["[avotoko-abort-on-mutation]"], from(arguments)));
+		}
+	}();
+	function parseOpts(args){
+		let opts = {};
+		for (let idx = 0 ; idx < args.length ; idx++){
+			let a = args[idx], i= a.indexOf(":"), name = a.substring(0, i).trim(), val = a.substring(i+1).trim();
+			val = /^\d+$/.test(val) ? val * 1 : NaN;
+			if (! ["debug","log","st"].includes(name) || isNaN(val)){ log("error: wrong option:", a); return}
+			opts[name] = val;
+		}
+		return opts;
+	}
+	function parsePattern(s){
+		let m, flag = "";
+		if (! s){ return /(?:)/; }
+		if (m = s.match(/^\/(.*)\/(\w*)$/)){
+			s = m[1], flag = m[2];
+		}
+		else {
+			s = s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+		}
+		if (s){
+			try { s = new RegExp(s, flag); }
+			catch (e){ log("RegExp error:", e.message, ":", s); return; }
+		}
+		return s;
+	}
+	const makeSt = function(){
+		const ua =navigator.userAgent, _Error = Error,
+				includes = String.prototype.includes, replace = String.prototype.replace,
+				split = String.prototype.split, trim = String.prototype.trim,
+				join = Array.prototype.join, map = Array.prototype.map,
+				slice = Array.prototype.slice;
+		return function makeSt(stack){
+			let i = includes.call(ua, "Chrome") ? 3 : includes.call(ua, "Firefox")  ? 2 : 2;
+			stack && --i, stack = stack || _Error().stack;
+			return join.call(slice.call(map.call(split.call(stack, "\n"), e=>replace.call(e, /^\s+(at\s+)|\s+$/g, "")), i), "\n");
+		};
+	}();
+	const formatSt = function(){
+		const join = Array.prototype.join, map = Array.prototype.map,  
+			slice = Array.prototype.slice, replace = String.prototype.replace,
+			split = String.prototype.split;
+		return function formatSt(st){
+			st = replace.call(st, /\s+$/, "");
+			return (opts.st > 0 ? "\n" + join.call(slice.call(map.call(split.call(st,"\n"), e=>"  "+e), 0, opts.st), "\n") : " ");
+		};
+	}();
+	const patch = (function(){
+		const _Error = Error,
+				stackDesc = Object.getOwnPropertyDescriptor(_Error.prototype, "stack"),
+				_stackTraceLimit = _Error.stackTraceLimit,
+				_prepareStackTrace = _Error.prepareStackTrace,
+				_forEach = Array.prototype.forEach,
+				_defineProperty = Object.defineProperty,
+				_getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor,
+				_getOwnPropertyNames = Object.getOwnPropertyNames,
+				_bind = Function.prototype.bind,
+				_toString = Function.prototype.toString,
+				_toLocaleString = Function.prototype.toLocaleString,
+				_Reflect_apply = Reflect.apply,
+				_Reflect_construct = Reflect.construct;
+		const patchedFunc = {};
+		const patchFunc = function(target, callback, opts){
+			opts = opts || {};
+			opts.debug && log("[patch] patching function:", target.name);
+			let temp = {
+				[target.name]: function(){
+					const _stl = _Error.stackTraceLimit, _pst = _Error.prepareStackTrace;
+					_Error.stackTraceLimit = "stackDepth" in opts ? opts.stackDepth : _stackTraceLimit,
+					_Error.prepareStackTrace = _prepareStackTrace;
+					const err = new _Error();
+					_Error.stackTraceLimit = _stl, _Error.prepareStackTrace = _pst;
+					const stack = stackDesc ? stackDesc.get.call(err) : err.stack;
+					return callback(target, this, arguments, new.target, stack, err);
+				},
+			}, copy = temp[target.name];
+			_forEach.call(_getOwnPropertyNames(target), prop=>{
+				copy[prop] = target[prop];
+			});
+			_defineProperty(copy, "toString", { value: _bind.call(target.toString, target) });
+			_defineProperty(copy, "toLocaleString", { value: _bind.call(target.toLocaleString, target) });
+			_defineProperty(copy.toLocaleString, "name", { value: "toLocaleString" });
+			_defineProperty(copy.toLocaleString, "toString", { value: _bind.call(Function.prototype.toString, target.toLocaleString) });
+			const depth = "protectionDepth" in opts ? opts.protectionDepth : 2;
+			opts.debug && log("[patch] protection depth:", depth);
+			for (let obj = copy.toString, 
+				obj2 = copy.toLocaleString.toString, 
+				toString = _bind.call(_toString, _toString),
+				i = 0 ; i < depth ; obj = obj.toString, obj2 = obj2.toString, i++){
+				_forEach.call([obj, obj2], obj=>{
+					_defineProperty(obj, "name", { value: "toString" });
+					_defineProperty(obj, "toString", { value: toString });
+				});
+			}
+			return copy;
+		}
+		const patch = function (obj, prop, callback, opts){
+			opts = opts || {};
+			const org = _getOwnPropertyDescriptor(obj, prop), copy = {};
+			if (! org){ opts.debug && log("[patch] error: no own property", prop, "in", obj); return; }
+			opts.debug && log("[patch] property descriptor of", prop + ":", org);
+			let patched;
+			for (let k in org){
+				copy[k] = org[k];
+				if (typeof org[k] === "function"){
+					opts.debug && log("[patch] patching descriptor." + k);
+					patched = true;
+					copy[k] = patchFunc(org[k], callback, opts);
+					patchedFunc[copy[k]] = org[k];
+				}
+			}
+			if (! patched){
+				opts.debug && log("[patch] error: descriptor has no get/set/value");
+				return;
+			}
+			opts.debug && log("[patch] defineProperty", prop, copy);
+			_defineProperty(obj, prop, copy);
+			return true;
+		};
+		patch._apply =  _Reflect_apply, patch._construct = _Reflect_construct;
+		(function(){
+			["entries", "getOwnPropertyDescriptor", "getOwnPropertyDescriptors", "getOwnPropertyNames", "getOwnPropertySymbols", "getPrototypeOf", "hasOwn", "is", "keys", "values"].forEach(prop => {
+				patch(Object, prop, function(target, thisArg, args, newTarget){
+					for (let i = 0 ; i < args.length ; i++){
+						patchedFunc[args[i]] && (args[i] = patchedFunc[args[i]]);
+					}
+					return _Reflect_apply(target, thisArg, args);
+				});
+			});
+			["hasOwnProperty", "propertyIsEnumerable"].forEach(prop => {
+				patch(Object.prototype, prop, function(target, thisArg, args, newTarget){
+					patchedFunc[thisArg] && (thisArg = target);
+					return _Reflect_apply(target, thisArg, args);
+				});
+			});
+		})();
+		return patch;
+	})();
+	function parseChain(chain, type, minLength){
+		let prop = [], s = chain, m;
+		if (! (m = s.match(/^(\w+)(.*)/))){ log("error: chain must start with identifier"); return; }
+		m[1] !== "window" && prop.push("window");
+		prop.push(m[1]), s = m[2];
+		while (s){
+			if (! (m = s.match(/(\.(\w+)|\['(.+)'\]|\["(.+)"\])(.*)/))){ log("error: wrong property"); return; }
+			prop.push(m[2] || m[3] || m[4]), s = m[5];
+		}
+		if (prop.length < minLength){ log("error: chain has no " + type); return; }
+		return prop;
+	}
+	log("start on", location.href);
+	let arg = (function(){
+		let a = []; a.push("{{1}}"), a.push("{{2}}"), a.push("{{3}}"), a.push("{{4}}"), a.push("{{5}}"), 
+		a.push("{{6}}"), a.push("{{7}}"), a.push("{{8}}"), a.push("{{9}}"), a.push("{{10}}"),
+		a.push("{{11}}"), a.push("{{12}}"), a.push("{{13}}"), a.push("{{14}}"), a.push("{{15}}");
+		for (let i = 0 ; i < a.length ; i++){ if (a[i] === "{{" + (i+1) + "}}"){ a.splice(i); break; } }
+		return a;
+	})();
+	//arg = ['btoa', 'add DIV', 'debugger', 'debug:1', 'log:1', 'st:10'];
+	log("arg:", arg);
+	// param: <own property>, <mutation pattern>, <stack trace pattern>, <option>...)
+	let chain = arg[0], prop, mtPattern = arg[1], stPattern = arg[2], opts = parseOpts(arg.slice(3));
+	if (! opts){ return; }
+	if (! (chain = parseChain(chain, "property", 2))){ return; }
+	prop = chain.splice(chain.length - 1)[0];
+	log("object:", chain);
+	log("own property:", prop);
+	if (mtPattern){
+		if (! (mtPattern = parsePattern(mtPattern))){ return; }
+	}
+	log("mutation pattern:", mtPattern);
+	if (! (stPattern = parsePattern(stPattern))){ return; }
+	log("stack trace pattern:", stPattern);
+	log("options:", opts);
+	let obj = window;
+	for (let i = 1 ; i < chain.length ; i++){
+		try {
+			obj = obj[chain[i]];
+			if (! obj){ log("error:", chain.slice(0,i+1).join("."), "not defined"); return; }
+		} catch(e){ log(e.type || "error", ":", e.message, ":", chain.slice(0,i+1).join(".")); return; }
+	}
+	opts.debug && log("object:", obj);
+	let triggered;
+	let ok = patch(obj, prop, function(){
+		const test = RegExp.prototype.test;
+		return function(target, thisArg, args, newTarget, stack, error){
+			if (triggered){
+				let st = makeSt(stack), match = test.call(stPattern, st);
+				if (match){
+					log("aborted", prop, formatSt(st));
+					throw error;
+				}
+				else {
+					opts.log && log(prop, formatSt(st));
+				}
+			}
+			return newTarget ? patch._construct(target, args, newTarget) : patch._apply(target, thisArg, args);
+		};
+	}(), {debug: opts.debug, stackDepth: 50});
+	if (! ok){ return; }
+	if (! mtPattern){ triggered = true; log("monitoring"); return; }
+	(function(){
+		const e2str = (function(){
+			const _forEach = DOMTokenList.prototype.forEach;
+			return function e2str(e){
+				if (! e){ return "undefined"; }
+				if (! e.tagName){
+					return e.nodeName ? e.nodeName : e instanceof Window ? "window" : "unknown";
+				}
+				let s = e.tagName + (e.id ? "#" + e.id : "");
+				_forEach.call(e.classList, name => s += "." + name);
+				return s;
+			}
+		})();
+		function contentToText(n){
+			try {
+				return n.nodeType === Node.ELEMENT_NODE ? n.innerHTML : n.nodeType === Node.TEXT_NODE ? n.textContent : "" + n;
+			}
+			catch (e){ return e.message; }
+		}
+		function attrToText(a){
+			try {
+				return "" + a;
+			}catch (e){ return e.message; }
+		}
+		const _forEach = Array.prototype.forEach, _test = RegExp.prototype.test,
+				_startsWith = String.prototype.startsWith;
+		function trigger(mutation){
+			if (! triggered){
+				_test.call(mtPattern, mutation) && (triggered = mutation);
+			}
+		}
+		const sig = "(function() {\n// >>>> start of private namespace\n\ntry {\n";
+		let scriptletRemoved;
+		new MutationObserver((mutations, observer)=>{
+			let text = "", s;
+			mutations.forEach((m)=>{
+				if (m.type === "childList"){
+					_forEach.call(m.addedNodes, (e,i)=>{
+						trigger(s = "add " + e2str(e) + " " + contentToText(e));
+						text += "\n" + s;
+					});
+					_forEach.call(m.removedNodes, (e,i)=>{
+						if (! scriptletRemoved){
+							scriptletRemoved = e.nodeType === Node.TEXT_NODE  && _startsWith.call(e.textContent, sig);
+						}
+						else {
+							trigger(s = "remove " + e2str(e) + " " + contentToText(e));
+							text += "\n" + s;
+						}
+					});
+				}
+				else if (m.type === "attributes"){
+					let e = m.target;
+					trigger(s = "attr " + e2str(e) + " " + m.attributeName + " old:" + attrToText(m.oldValue) + " new:" + attrToText(e[m.attributeName]));
+					text += "\n" + s;
+				}
+				else if (m.type === "characterData"){
+					let e = m.target;
+					trigger(s = "char " + e2str(e) + " old:" + m.oldValue + " new:" + e.textContent);
+					text += "\n" + s;
+				}
+			});
+			opts.log && text && log(text);
+			triggered && (observer.disconnect(), log("triggered by", triggered));
+		}).observe(document, {childList:true, subtree:true, attributes: true, attributeOldValue: true, characterData: true, characterDataOldValue: true});
+		log("monitoring mutation");
+	})();
+})();
