@@ -1543,7 +1543,6 @@
             _toLocaleString = Function.prototype.toLocaleString,
             _Reflect_apply = Reflect.apply,
             _Reflect_construct = Reflect.construct;
-            _dummy = void 0;
     const mustAbort = function(err) {
         let docURL = self.location.href;
         const pos = _indexOf.call(docURL, '#');
