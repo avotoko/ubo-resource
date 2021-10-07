@@ -20,9 +20,9 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! disable not working filter
 ygosu.com#@#+js(aost, XMLHttpRequest.prototype.send, /th:\d+\s+[a-zA-Z]\d\/<@[^\t]+\t\s[a-zA-Z]\d@|th:\d+\s+in[a-zA-Z\d:;]+\t\s[a-zA-Z]\d\si/)
 ! block alternative ads.
-ygosu.com##+js(avotoko-yaaost, Element.prototype.attachShadow, /th:\d+\s+[a-zA-Z]{2}\/<\/[a-z.]+<\/<@|\t\s[a-zA-Z]{2}\.<[a-z]+>/)
+ygosu.com##+js(avotoko-yaaost, Element.prototype.attachShadow, /th:\d+\s+@|[a-zA-Z]{2}\.<[a-z]+>\s[a-z]/)
 ! prevent them for removing content images.
-ygosu.com##+js(avotoko-yaaost, Element.prototype.removeAttribute, /\t\s[a-zA-Z]{2}\/<\/<\/<@|(\t\sObject+\.[a-zA-Z]+ [:a-zA-Z\d]+){3}/)
+ygosu.com##+js(avotoko-yaaost, Element.prototype.removeAttribute, /\s[a-zA-Z]{2}\/<\/<\/<@|(\t\s[:\w]+){2}\t\s[a-zA-Z]+\./)
 
 ! disable not working filter
 ppss.kr#@#+js(aost, XMLHttpRequest.prototype.send, /th:\d+\s+[a-zA-Z]\d\/<@[^\t]+\t\s[a-zA-Z]\d@|th:\d+\s+in[a-zA-Z\d:;]+\t\s[a-zA-Z]\d\si/)
