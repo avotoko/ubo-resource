@@ -1749,8 +1749,11 @@
 				_prepareStackTrace = _Error.prepareStackTrace,
 				_forEach = Array.prototype.forEach,
 				_defineProperty = Object.defineProperty,
+				_entries = Object.entries,
 				_getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor,
+				_getOwnPropertyDescriptors = Object.getOwnPropertyDescriptors,
 				_getOwnPropertyNames = Object.getOwnPropertyNames,
+				_getPrototypeOf = Object.getPrototypeOf,
 				_bind = Function.prototype.bind,
 				_toString = Function.prototype.toString,
 				_toLocaleString = Function.prototype.toLocaleString,
@@ -1761,19 +1764,27 @@
 			opts = opts || {};
 			opts.debug && log("[patch] patching function:", target.name);
 			let temp = {
-				[target.name]: function(){
-					const _stl = _Error.stackTraceLimit, _pst = _Error.prepareStackTrace;
-					_Error.stackTraceLimit = "stackDepth" in opts ? opts.stackDepth : _stackTraceLimit,
-					_Error.prepareStackTrace = _prepareStackTrace;
-					const err = new _Error();
-					_Error.stackTraceLimit = _stl, _Error.prepareStackTrace = _pst;
-					const stack = stackDesc ? stackDesc.get.call(err) : err.stack;
-					return callback(target, this, arguments, new.target, stack, err);
-				},
+				[target.name]: new Proxy(target, {
+					apply: function(target, thisArg, args) {
+						const _stl = _Error.stackTraceLimit, _pst = _Error.prepareStackTrace;
+						_Error.stackTraceLimit = "stackDepth" in opts ? opts.stackDepth : _stackTraceLimit,
+						_Error.prepareStackTrace = _prepareStackTrace;
+						const err = new _Error();
+						_Error.stackTraceLimit = _stl, _Error.prepareStackTrace = _pst;
+						const stack = stackDesc ? stackDesc.get.call(err) : err.stack;
+						return callback(target, thisArg, args, new.target, stack, err);
+					},
+					construct: function(target, args, newTarget) {
+						const _stl = _Error.stackTraceLimit, _pst = _Error.prepareStackTrace;
+						_Error.stackTraceLimit = "stackDepth" in opts ? opts.stackDepth : _stackTraceLimit,
+						_Error.prepareStackTrace = _prepareStackTrace;
+						const err = new _Error();
+						_Error.stackTraceLimit = _stl, _Error.prepareStackTrace = _pst;
+						const stack = stackDesc ? stackDesc.get.call(err) : err.stack;
+						return callback(target, this, args, newTarget, stack, err);
+					}
+				}),
 			}, copy = temp[target.name];
-			_forEach.call(_getOwnPropertyNames(target), prop=>{
-				copy[prop] = target[prop];
-			});
 			_defineProperty(copy, "toString", { value: _bind.call(target.toString, target) });
 			_defineProperty(copy, "toLocaleString", { value: _bind.call(target.toLocaleString, target) });
 			_defineProperty(copy.toLocaleString, "name", { value: "toLocaleString" });
@@ -1793,30 +1804,27 @@
 		}
 		const patch = function (obj, prop, callback, opts){
 			opts = opts || {};
-			const org = _getOwnPropertyDescriptor(obj, prop), copy = {};
-			if (! org){ opts.debug && log("[patch] error: no own property", prop, "in", obj); return; }
-			opts.debug && log("[patch] property descriptor of", prop + ":", org);
-			let patched;
-			for (let k in org){
-				copy[k] = org[k];
-				if (typeof org[k] === "function"){
-					opts.debug && log("[patch] patching descriptor." + k);
-					patched = true;
-					copy[k] = patchFunc(org[k], callback, opts);
-					patchedFunc[copy[k]] = org[k];
+			let target = obj[prop], patched;
+			if (typeof target === "function"){
+				let props = {};
+				const descriptors = _getOwnPropertyDescriptors(target);
+				for (let k in descriptors){
+					_defineProperty(props, k, descriptors[k]);
 				}
+				obj[prop] = patchFunc(target, callback, opts);
+				patchedFunc[obj[prop]] = props;
+				opts.debug && log("[patch] patched", prop);
+				patched = true;
 			}
 			if (! patched){
-				opts.debug && log("[patch] error: descriptor has no get/set/value");
+				opts.debug && log("[patch] error: prop is not function");
 				return;
 			}
-			opts.debug && log("[patch] defineProperty", prop, copy);
-			_defineProperty(obj, prop, copy);
 			return true;
 		};
 		patch._apply =  _Reflect_apply, patch._construct = _Reflect_construct;
 		(function(){
-			["entries", "getOwnPropertyDescriptor", "getOwnPropertyDescriptors", "getOwnPropertyNames", "getOwnPropertySymbols", "getPrototypeOf", "hasOwn", "is", "keys", "values"].forEach(prop => {
+			["entries", "getOwnPropertyDescriptor", "getOwnPropertyDescriptors", "getOwnPropertyNames", "getOwnPropertySymbols", "hasOwn", "keys", "values"].forEach(prop => {
 				patch(Object, prop, function(target, thisArg, args, newTarget){
 					for (let i = 0 ; i < args.length ; i++){
 						patchedFunc[args[i]] && (args[i] = patchedFunc[args[i]]);
