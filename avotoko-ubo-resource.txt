@@ -1759,8 +1759,9 @@
 				_toLocaleString = Function.prototype.toLocaleString,
 				_Reflect_apply = Reflect.apply,
 				_Reflect_construct = Reflect.construct,
+				_Reflect_deleteProperty = Reflect.deleteProperty,
 				_Reflect_set = Reflect.set;
-		const patchedFunc = {};
+		const patchedFunc = {}, dummyObj = {};
 		const patchFunc = function(target, callback, opts){
 			opts = opts || {};
 			opts.debug && log("[patch] patching function:", target.name);
@@ -1784,8 +1785,12 @@
 						const stack = stackDesc ? stackDesc.get.call(err) : err.stack;
 						return callback(target, this, args, newTarget, stack, err);
 					},
+					deleteProperty: function(target, prop) {
+						dummyObj[target] && (delete dummyObj[target][prop]);
+						return _Reflect_deleteProperty(target, prop);
+					},
 					set: function(target, prop, v, receiver) {
-						patchedFunc[receiver] && (patchedFunc[receiver][prop] = v);
+						dummyObj[target] && (dummyObj[target][prop] = v);
 						return _Reflect_set(target, prop, v, receiver);
 					},
 				}),
@@ -1811,13 +1816,15 @@
 			opts = opts || {};
 			let target = obj[prop], patched;
 			if (typeof target === "function"){
-				let props = {};
-				const descriptors = _getOwnPropertyDescriptors(target);
-				for (let k in descriptors){
-					_defineProperty(props, k, descriptors[k]);
+				if (! dummyObj[target]){
+					dummyObj[target] = {};
+					const descriptors = _getOwnPropertyDescriptors(target);
+					for (let k in descriptors){
+						_defineProperty(dummyObj[target], k, descriptors[k]);
+					}
 				}
 				obj[prop] = patchFunc(target, callback, opts);
-				patchedFunc[obj[prop]] = props;
+				patchedFunc[obj[prop]] = target;
 				opts.debug && log("[patch] patched", prop);
 				patched = true;
 			}
@@ -1832,14 +1839,16 @@
 			["entries", "getOwnPropertyDescriptor", "getOwnPropertyDescriptors", "getOwnPropertyNames", "getOwnPropertySymbols", "hasOwn", "keys", "values"].forEach(prop => {
 				patch(Object, prop, function(target, thisArg, args, newTarget){
 					for (let i = 0 ; i < args.length ; i++){
-						patchedFunc[args[i]] && (args[i] = patchedFunc[args[i]]);
+						let dummy = patchedFunc[args[i]] && dummyObj[patchedFunc[args[i]]];
+						dummy && (args[i] = dummy)
 					}
 					return _Reflect_apply(target, thisArg, args);
 				});
 			});
 			["hasOwnProperty", "propertyIsEnumerable"].forEach(prop => {
 				patch(Object.prototype, prop, function(target, thisArg, args, newTarget){
-					patchedFunc[thisArg] && (thisArg = patchedFunc[thisArg]);
+					let dummy = patchedFunc[thisArg] && dummyObj[patchedFunc[thisArg]];
+					dummy && (thisArg = dummy);
 					return _Reflect_apply(target, thisArg, args);
 				});
 			});
