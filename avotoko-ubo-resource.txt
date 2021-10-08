@@ -1758,7 +1758,8 @@
 				_toString = Function.prototype.toString,
 				_toLocaleString = Function.prototype.toLocaleString,
 				_Reflect_apply = Reflect.apply,
-				_Reflect_construct = Reflect.construct;
+				_Reflect_construct = Reflect.construct,
+				_Reflect_set = Reflect.set;
 		const patchedFunc = {};
 		const patchFunc = function(target, callback, opts){
 			opts = opts || {};
@@ -1782,7 +1783,11 @@
 						_Error.stackTraceLimit = _stl, _Error.prepareStackTrace = _pst;
 						const stack = stackDesc ? stackDesc.get.call(err) : err.stack;
 						return callback(target, this, args, newTarget, stack, err);
-					}
+					},
+					set: function(target, prop, v, receiver) {
+						patchedFunc[receiver] && (patchedFunc[receiver][prop] = v);
+						return _Reflect_set(target, prop, v, receiver);
+					},
 				}),
 			}, copy = temp[target.name];
 			_defineProperty(copy, "toString", { value: _bind.call(target.toString, target) });
@@ -1834,7 +1839,7 @@
 			});
 			["hasOwnProperty", "propertyIsEnumerable"].forEach(prop => {
 				patch(Object.prototype, prop, function(target, thisArg, args, newTarget){
-					patchedFunc[thisArg] && (thisArg = target);
+					patchedFunc[thisArg] && (thisArg = patchedFunc[thisArg]);
 					return _Reflect_apply(target, thisArg, args);
 				});
 			});
