@@ -1743,62 +1743,72 @@
 		};
 	}();
 	const patch = (function(){
+		const assignOwnProperties = function(){
+			const _defineProperty = Object.defineProperty,
+					_getOwnPropertyDescriptors = Object.getOwnPropertyDescriptors;
+			return function(dst, src){
+				const descriptors = _getOwnPropertyDescriptors(src);
+				for (let k in descriptors){
+					_defineProperty(dst, k, descriptors[k]);
+				}
+				return dst;
+			};
+		}();
 		const _Error = Error,
 				stackDesc = Object.getOwnPropertyDescriptor(_Error.prototype, "stack"),
 				_stackTraceLimit = _Error.stackTraceLimit,
 				_prepareStackTrace = _Error.prepareStackTrace,
 				_forEach = Array.prototype.forEach,
-				_defineProperty = Object.defineProperty,
-				_entries = Object.entries,
-				_getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor,
-				_getOwnPropertyDescriptors = Object.getOwnPropertyDescriptors,
-				_getOwnPropertyNames = Object.getOwnPropertyNames,
-				_getPrototypeOf = Object.getPrototypeOf,
 				_bind = Function.prototype.bind,
 				_toString = Function.prototype.toString,
 				_toLocaleString = Function.prototype.toLocaleString,
-				_Reflect_apply = Reflect.apply,
-				_Reflect_construct = Reflect.construct,
-				_Reflect_deleteProperty = Reflect.deleteProperty,
-				_Reflect_set = Reflect.set;
+				O = assignOwnProperties({}, Object),
+				R = assignOwnProperties({}, Reflect);
 		const patchedFunc = {}, dummyObj = {};
-		const patchFunc = function(target, callback, opts){
+		window.patchedFunc = patchedFunc, window.dummyObj = dummyObj;
+		const patchFunc = function(target, handler, opts){
 			opts = opts || {};
 			opts.debug && log("[patch] patching function:", target.name);
 			let temp = {
 				[target.name]: new Proxy(target, {
 					apply: function(target, thisArg, args) {
-						const _stl = _Error.stackTraceLimit, _pst = _Error.prepareStackTrace;
-						_Error.stackTraceLimit = "stackDepth" in opts ? opts.stackDepth : _stackTraceLimit,
-						_Error.prepareStackTrace = _prepareStackTrace;
-						const err = new _Error();
-						_Error.stackTraceLimit = _stl, _Error.prepareStackTrace = _pst;
-						const stack = stackDesc ? stackDesc.get.call(err) : err.stack;
-						return callback(target, thisArg, args, new.target, stack, err);
+						if (typeof handler.apply === "function"){
+							const _stl = _Error.stackTraceLimit, _pst = _Error.prepareStackTrace;
+							_Error.stackTraceLimit = "stackDepth" in opts ? opts.stackDepth : _stackTraceLimit,
+							_Error.prepareStackTrace = _prepareStackTrace;
+							const err = new _Error();
+							_Error.stackTraceLimit = _stl, _Error.prepareStackTrace = _pst;
+							const stack = stackDesc ? stackDesc.get.call(err) : err.stack;
+							return handler.apply(target, thisArg, args, stack, err);
+						}
+						return R.apply(target, thisArg, args);
 					},
 					construct: function(target, args, newTarget) {
-						const _stl = _Error.stackTraceLimit, _pst = _Error.prepareStackTrace;
-						_Error.stackTraceLimit = "stackDepth" in opts ? opts.stackDepth : _stackTraceLimit,
-						_Error.prepareStackTrace = _prepareStackTrace;
-						const err = new _Error();
-						_Error.stackTraceLimit = _stl, _Error.prepareStackTrace = _pst;
-						const stack = stackDesc ? stackDesc.get.call(err) : err.stack;
-						return callback(target, this, args, newTarget, stack, err);
+						if (typeof handler.construct === "function"){
+							const _stl = _Error.stackTraceLimit, _pst = _Error.prepareStackTrace;
+							_Error.stackTraceLimit = "stackDepth" in opts ? opts.stackDepth : _stackTraceLimit,
+							_Error.prepareStackTrace = _prepareStackTrace;
+							const err = new _Error();
+							_Error.stackTraceLimit = _stl, _Error.prepareStackTrace = _pst;
+							const stack = stackDesc ? stackDesc.get.call(err) : err.stack;
+							return handler.construct(target, args, newTarget, stack, err);
+						}
+						return R.construct(target, args, newTarget);
 					},
-					deleteProperty: function(target, prop) {
-						dummyObj[target] && (delete dummyObj[target][prop]);
-						return _Reflect_deleteProperty(target, prop);
+					getOwnPropertyDescriptor: function(target, prop) {
+						dummyObj[target] && (target = dummyObj[target]);
+						return R.getOwnPropertyDescriptor(target, prop);
 					},
-					set: function(target, prop, v, receiver) {
-						dummyObj[target] && (dummyObj[target][prop] = v);
-						return _Reflect_set(target, prop, v, receiver);
+					ownKeys: function(target) {
+						dummyObj[target] && (target = dummyObj[target]);
+						return R.ownKeys(target);
 					},
 				}),
 			}, copy = temp[target.name];
-			_defineProperty(copy, "toString", { value: _bind.call(target.toString, target) });
-			_defineProperty(copy, "toLocaleString", { value: _bind.call(target.toLocaleString, target) });
-			_defineProperty(copy.toLocaleString, "name", { value: "toLocaleString" });
-			_defineProperty(copy.toLocaleString, "toString", { value: _bind.call(Function.prototype.toString, target.toLocaleString) });
+			O.defineProperty(copy, "toString", { value: _bind.call(target.toString, target), writable: !0, configurable: !0 });
+			O.defineProperty(copy, "toLocaleString", { value: _bind.call(target.toLocaleString, target), writable: !0, configurable: !0 });
+			O.defineProperty(copy.toLocaleString, "name", { value: "toLocaleString", configurable: !0 });
+			O.defineProperty(copy.toLocaleString, "toString", { value: _bind.call(Function.prototype.toString, target.toLocaleString), writable: !0, configurable: !0 });
 			const depth = "protectionDepth" in opts ? opts.protectionDepth : 2;
 			opts.debug && log("[patch] protection depth:", depth);
 			for (let obj = copy.toString, 
@@ -1806,25 +1816,21 @@
 				toString = _bind.call(_toString, _toString),
 				i = 0 ; i < depth ; obj = obj.toString, obj2 = obj2.toString, i++){
 				_forEach.call([obj, obj2], obj=>{
-					_defineProperty(obj, "name", { value: "toString" });
-					_defineProperty(obj, "toString", { value: toString });
+					O.defineProperty(obj, "name", { value: "toString", configurable:!0 });
+					O.defineProperty(obj, "toString", { value: toString, writable: !0, configurable: !0 });
 				});
 			}
 			return copy;
 		}
-		const patch = function (obj, prop, callback, opts){
+		const patch = function (obj, prop, handler, opts){
 			opts = opts || {};
 			let target = obj[prop], patched;
 			if (typeof target === "function"){
-				if (! dummyObj[target]){
-					dummyObj[target] = {};
-					const descriptors = _getOwnPropertyDescriptors(target);
-					for (let k in descriptors){
-						_defineProperty(dummyObj[target], k, descriptors[k]);
-					}
-				}
-				obj[prop] = patchFunc(target, callback, opts);
+				let dummy;
+				! dummyObj[target] && (dummy = assignOwnProperties({}, target)); // must be before patchFunc
+				obj[prop] = patchFunc(target, handler, opts);
 				patchedFunc[obj[prop]] = target;
+				dummyObj[target] = dummy;  // must be after  patchFunc
 				opts.debug && log("[patch] patched", prop);
 				patched = true;
 			}
@@ -1834,25 +1840,7 @@
 			}
 			return true;
 		};
-		patch._apply =  _Reflect_apply, patch._construct = _Reflect_construct;
-		(function(){
-			["entries", "getOwnPropertyDescriptor", "getOwnPropertyDescriptors", "getOwnPropertyNames", "getOwnPropertySymbols", "hasOwn", "keys", "values"].forEach(prop => {
-				patch(Object, prop, function(target, thisArg, args, newTarget){
-					for (let i = 0 ; i < args.length ; i++){
-						let dummy = patchedFunc[args[i]] && dummyObj[patchedFunc[args[i]]];
-						dummy && (args[i] = dummy)
-					}
-					return _Reflect_apply(target, thisArg, args);
-				});
-			});
-			["hasOwnProperty", "propertyIsEnumerable"].forEach(prop => {
-				patch(Object.prototype, prop, function(target, thisArg, args, newTarget){
-					let dummy = patchedFunc[thisArg] && dummyObj[patchedFunc[thisArg]];
-					dummy && (thisArg = dummy);
-					return _Reflect_apply(target, thisArg, args);
-				});
-			});
-		})();
+		patch.R = R;
 		return patch;
 	})();
 	function parseChain(chain, type, minLength){
@@ -1899,23 +1887,35 @@
 		} catch(e){ log(e.type || "error", ":", e.message, ":", chain.slice(0,i+1).join(".")); return; }
 	}
 	opts.debug && log("object:", obj);
-	let triggered;
-	let ok = patch(obj, prop, function(){
-		const test = RegExp.prototype.test;
-		return function(target, thisArg, args, newTarget, stack, error){
-			if (triggered){
-				let st = makeSt(stack), match = test.call(stPattern, st);
-				if (match){
-					log("aborted", prop, formatSt(st));
-					throw error;
+	let triggered, _test = RegExp.prototype.test;
+	let ok = patch(obj, prop, {
+		apply: function(){
+			return function(target, thisArg, args, stack, error){
+				if (triggered){
+					let st = makeSt(stack), match = _test.call(stPattern, st);
+					if (match){
+						log("aborted", prop, formatSt(st));
+						throw error;
+					}
+					else { opts.log && log(prop, formatSt(st)); }
 				}
-				else {
-					opts.log && log(prop, formatSt(st));
+				return patch.R.apply(target, thisArg, args);
+			};
+		}(),
+		construct: function(){
+			return function(target, args, newTarget, stack, error){
+				if (triggered){
+					let st = makeSt(stack), match = _test.call(stPattern, st);
+					if (match){
+						log("aborted new", prop, formatSt(st));
+						throw error;
+					}
+					else { opts.log && log(prop, formatSt(st)); }
 				}
-			}
-			return newTarget ? patch._construct(target, args, newTarget) : patch._apply(target, thisArg, args);
-		};
-	}(), {debug: opts.debug, stackDepth: 50});
+				return patch.R.construct(target, args, newTarget);
+			};
+		}(),
+	}, {debug: opts.debug, stackDepth: 50});
 	if (! ok){ return; }
 	if (! mtPattern){ triggered = true; log("monitoring"); return; }
 	(function(){
