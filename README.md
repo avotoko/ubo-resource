@@ -15,19 +15,19 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! https://ad-shield.io/en/
 ! https://ygosu.com/
 ! https://ppss.kr/
-! Oct. 7 2021 update
+! update at Wed, 13 Oct 2021 10:59:24 GMT
 
 ! disable not working filter
 ppss.kr,ygosu.com#@#+js(aost, XMLHttpRequest.prototype.send, /th:\d+\s+[a-zA-Z]\d\/<@[^\t]+\t\s[a-zA-Z]\d@|th:\d+\s+in[a-zA-Z\d:;]+\t\s[a-zA-Z]\d\si/)
 ! Terminate the script before loading alternative ads.
-ppss.kr,ygosu.com##+js(avotoko-aom, Promise, /attr IMG\.\S+ src old:data:\S+ new:https:(?!.*?loading(_m)?\.gif$).*$|add DIV#ad-unit/)
+ppss.kr,ygosu.com##+js(avotoko-abort-on-mutation, Promise, /attr IMG\.\S+ src old:data:\S+ new:https:(?!.*?loading(_m)?\.gif$).*$|add DIV#ad-unit/)
 ! To output the mutation log, append ',,log:1' to the end.
-! ppss.kr,ygosu.com##+js(avotoko-aom, Promise, /attr IMG\.\S+ src old:data:\S+ new:https:(?!.*?loading(_m)?\.gif$).*$|add DIV#ad-unit/,,log:1)
+! ppss.kr,ygosu.com##+js(avotoko-abort-on-mutation, Promise, /attr IMG\.\S+ src old:data:\S+ new:https:(?!.*?loading(_m)?\.gif$).*$|add DIV#ad-unit/,,log:1)
 ! Hide ads.
 ppss.kr###custom_html-2
 
-! [not work] Hide alternative ads.
-! ad-shield.io##+js(avotoko-no-shadow-root)
+! Hide alternative ads.
+ad-shield.io##+js(avotoko-no-shadow-root)
 
 ! https://github.com/uBlockOrigin/uAssets/issues/8489
 ! https://forum.release-apk.com/viewforum.php?f=41
