@@ -15,8 +15,10 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! https://ad-shield.io/en/
 ! https://ygosu.com/
 ! https://ppss.kr/
-! update at Wed, 13 Oct 2021 10:59:24 GMT
+! update at Tue, 07 Dec 2021 10:54:22 GMT
 
+! Disable the filter, uBlock filters: /\/\/ygosu\.com\/[A-Z]{1,}.*[a-z]{1,}.*/$image,1p,match-case, triggering the anti-adblock. 
+@@||ygosu.com^$image,1p
 ! disable not working filter
 ppss.kr,ygosu.com#@#+js(aost, XMLHttpRequest.prototype.send, /th:\d+\s+[a-zA-Z]\d\/<@[^\t]+\t\s[a-zA-Z]\d@|th:\d+\s+in[a-zA-Z\d:;]+\t\s[a-zA-Z]\d\si/)
 ! Terminate the script before loading alternative ads.
