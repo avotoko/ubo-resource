@@ -33,25 +33,25 @@ ad-shield.io##+js(avotoko-no-shadow-root)
 
 ! https://github.com/uBlockOrigin/uAssets/issues/8489
 ! https://forum.release-apk.com/viewtopic.php?t=132895
-! Update at Wed, 05 Jan 2022 01:52:24 GMT
+! Update at Wed, 05 Jan 2022 03:18:51 GMT
 ! Block handlers that might overload the cpu.
 forum.release-apk.com##+js(acis, jQuery, 'load')
-! hide ad space. trigger anti-adblock
-! forum.release-apk.com##ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"])
-! forum.release-apk.com##.google-auto-placed
+! hide ad space.
+forum.release-apk.com##ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"])
+forum.release-apk.com##.google-auto-placed
 ! bypass iframe checking
-forum.release-apk.com##+js(avotoko-fake-queryselector-argument, document, querySelectorAll, ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"]) iframe[src^="https://googleads.g.doubleclick.net/pagead/ads"], #wrap, /^.+view(forum|topic).php\?f=\d+(&.+)?:\d{3}:\d+/)
+forum.release-apk.com##+js(avotoko-fake-queryselector-argument, document, querySelectorAll, ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"]) iframe[src^="https://googleads.g.doubleclick.net/pagead/ads"], #wrap, /^.+view(forum|topic).php\?[ft]=\d+(&.+)?:\d{3}:\d+/,debug:1,log:1,st:10)
 forum.release-apk.com##+js(avotoko-fake-element-property, #wrap, name:"wrap", dataset:{"loadComplete":"true"})
 ! bypass other checking
-forum.release-apk.com##+js(avotoko-fake-computed-style, ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"])\, div[class^="phpbb-ads-center"], , display:block; height:200px; width:200px, /view(forum|topic).php\?f=\d+(&.+)?:\d{3}:\d+/)
+forum.release-apk.com##+js(avotoko-fake-computed-style, ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"])\, div[class^="phpbb-ads-center"], , display:block; height:200px; width:200px, /view(forum|topic).php\?[ft]=\d+(&.+)?:\d{3}:\d+/)
 ! increase display speed
-forum.release-apk.com##+js(avotoko-fake-gettime-speed, 1000, /^.+view(forum|topic).php\?f=\d+(&.+)?:\d{3}:\d+/)
+forum.release-apk.com##+js(avotoko-fake-gettime-speed, 1000, /^.+view(forum|topic).php\?[ft]=\d+(&.+)?:\d{3}:\d+/)
 ! July 10 2021 The site has implemented a new anti-adblock. And others.
 ! Prevent new anti-adblock script from loading
 ||forum.release-apk.com/ext/*.php?$script,1p
 ! bypass checking
-forum.release-apk.com##+js(avotoko-fake-computed-style, .adsbygoogle, , display:block, /view(forum|topic).php\?f=\d+(&.+)?:\d{3}:\d+/)
-forum.release-apk.com##+js(avotoko-fake-element-property, ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"]), dataset:{"adsbygoogleStatus":"done"}, , /^.+view(forum|topic).php\?f=\d+(&.+)?:\d{3}:\d+/)
+forum.release-apk.com##+js(avotoko-fake-computed-style, .adsbygoogle, , display:block, /view(forum|topic).php\?[ft]=\d+(&.+)?:\d{3}:\d+/)
+forum.release-apk.com##+js(avotoko-fake-element-property, ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"]), dataset:{"adsbygoogleStatus":"done"}, , /^.+view(forum|topic).php\?[ft]=\d+(&.+)?:\d{3}:\d+/)
 
 ! https://www.reddit.com/r/uBlockOrigin/comments/n71ene/this_website_can_detect_that_i_am_using/
 ! https://thehouseofportable.com/download/?id=351&k=6
