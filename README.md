@@ -32,13 +32,13 @@ ppss.kr###custom_html-2
 ad-shield.io##+js(avotoko-no-shadow-root)
 
 ! https://github.com/uBlockOrigin/uAssets/issues/8489
-! https://forum.release-apk.com/viewforum.php?f=41
-! Aug. 20 2021 update
+! https://forum.release-apk.com/viewtopic.php?t=132895
+! Update at Wed, 05 Jan 2022 01:52:24 GMT
 ! Block handlers that might overload the cpu.
 forum.release-apk.com##+js(acis, jQuery, 'load')
-! hide ad space
-forum.release-apk.com##ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"])
-forum.release-apk.com##.google-auto-placed
+! hide ad space. trigger anti-adblock
+! forum.release-apk.com##ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"])
+! forum.release-apk.com##.google-auto-placed
 ! bypass iframe checking
 forum.release-apk.com##+js(avotoko-fake-queryselector-argument, document, querySelectorAll, ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"]) iframe[src^="https://googleads.g.doubleclick.net/pagead/ads"], #wrap, /^.+view(forum|topic).php\?f=\d+(&.+)?:\d{3}:\d+/)
 forum.release-apk.com##+js(avotoko-fake-element-property, #wrap, name:"wrap", dataset:{"loadComplete":"true"})
