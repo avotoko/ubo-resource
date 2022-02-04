@@ -15,14 +15,17 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! https://ad-shield.io/en/
 ! https://ygosu.com/
 ! https://ppss.kr/
+! added filters for maple.inven.co.kr at Fri, 04 Feb 2022 14:40:20 GMT
 ! update filters for ppss.kr at Fri, 04 Feb 2022 11:30:18 GMT
 
 ! Disable the filter, uBlock filters: /\/\/ygosu\.com\/[A-Z]{1,}.*[a-z]{1,}.*/$image,1p,match-case, triggering the anti-adblock. 
 @@||ygosu.com^$image,1p
 ! disable not working filter
 ppss.kr,ygosu.com#@#+js(aost, XMLHttpRequest.prototype.send, /th:\d+\s+[a-zA-Z]\d\/<@[^\t]+\t\s[a-zA-Z]\d@|th:\d+\s+in[a-zA-Z\d:;]+\t\s[a-zA-Z]\d\si/)
-! Terminate the script before loading alternative ads.
-ppss.kr,ygosu.com##+js(avotoko-abort-on-mutation, Promise, /attr IMG\.\S+ src old:data:\S+ new:https:(?!.*?loading(_m)?\.gif$).*$|add DIV#ad-unit/)
+! Prevent ad-shield loading alternative ads.
+maple.inven.co.kr,ppss.kr,ygosu.com##+js(avotoko-abort-on-mutation, Promise, /attr IMG\.\S+ src old:data:\S+ new:https:(?!.*?loading(_m)?\.gif$).*$|add DIV#ad-unit/)
+! Prevent ad-shield unloading content images.
+maple.inven.co.kr,ppss.kr,ygosu.com##+js(avotoko-abort-on-mutation, Element.prototype.removeAttribute, /attr IMG\.\S+ src old:data:\S+ new:https:(?!.*?loading(_m)?\.gif$).*$|add DIV#ad-unit/)
 ! To output the mutation log, append ',,log:1' to the end.
 ! ppss.kr,ygosu.com##+js(avotoko-abort-on-mutation, Promise, /attr IMG\.\S+ src old:data:\S+ new:https:(?!.*?loading(_m)?\.gif$).*$|add DIV#ad-unit/,,log:1)
 ! Disable the filter preventing content images from loading.
