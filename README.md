@@ -15,7 +15,7 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! https://ad-shield.io/en/
 ! https://ygosu.com/
 ! https://ppss.kr/
-! update at Tue, 07 Dec 2021 10:54:22 GMT
+! update filters for ppss.kr at Fri, 04 Feb 2022 11:30:18 GMT
 
 ! Disable the filter, uBlock filters: /\/\/ygosu\.com\/[A-Z]{1,}.*[a-z]{1,}.*/$image,1p,match-case, triggering the anti-adblock. 
 @@||ygosu.com^$image,1p
@@ -25,8 +25,12 @@ ppss.kr,ygosu.com#@#+js(aost, XMLHttpRequest.prototype.send, /th:\d+\s+[a-zA-Z]\
 ppss.kr,ygosu.com##+js(avotoko-abort-on-mutation, Promise, /attr IMG\.\S+ src old:data:\S+ new:https:(?!.*?loading(_m)?\.gif$).*$|add DIV#ad-unit/)
 ! To output the mutation log, append ',,log:1' to the end.
 ! ppss.kr,ygosu.com##+js(avotoko-abort-on-mutation, Promise, /attr IMG\.\S+ src old:data:\S+ new:https:(?!.*?loading(_m)?\.gif$).*$|add DIV#ad-unit/,,log:1)
-! Hide ads.
-ppss.kr###custom_html-2
+! Disable the filter preventing content images from loading.
+@@||ppss.kr^$document,csp=script-src *
+! Hide ads in the article page.
+ppss.kr##div[onclick]
+ppss.kr##.brand-margin, .cover-background
+ppss.kr##.ad-video
 
 ! Hide alternative ads.
 ad-shield.io##+js(avotoko-no-shadow-root)
