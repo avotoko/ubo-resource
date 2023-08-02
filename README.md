@@ -26,7 +26,7 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 
 ! https://github.com/uBlockOrigin/uAssets/issues/8489
 ! https://github.com/uBlockOrigin/uAssets/issues/14426
-! Update at Wed, 02 Aug 2023 08:22:48 GMT
+! Update at Wed, 02 Aug 2023 08:38:15 GMT.
 ! Currently uBO's native scriptlets can solve the issue.
 ! block ad network
 ||adskeeper.com^$script,domain=forum.release-apk.com
