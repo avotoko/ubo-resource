@@ -25,26 +25,17 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! ppss.kr,ygosu.com##+js(avotoko-abort-on-mutation, Promise, /attr IMG\.\S+ src old:data:\S+ new:https:(?!.*?loading(_m)?\.gif$).*$/,,log:1)
 
 ! https://github.com/uBlockOrigin/uAssets/issues/8489
-! https://forum.release-apk.com/viewtopic.php?t=132895
-! Update at Wed, 05 Jan 2022 03:18:51 GMT
-! Block handlers that might overload the cpu.
-forum.release-apk.com##+js(acis, jQuery, 'load')
-! hide ad space.
-forum.release-apk.com##ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"])
-forum.release-apk.com##.google-auto-placed
-! bypass iframe checking
-forum.release-apk.com##+js(avotoko-fake-queryselector-argument, document, querySelectorAll, ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"]) iframe[src^="https://googleads.g.doubleclick.net/pagead/ads"], #wrap, /^.+view(forum|topic).php\?[ft]=\d+(&.+)?:\d{3}:\d+/)
-forum.release-apk.com##+js(avotoko-fake-element-property, #wrap, name:"wrap", dataset:{"loadComplete":"true"})
-! bypass other checking
-forum.release-apk.com##+js(avotoko-fake-computed-style, ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"])\, div[class^="phpbb-ads-center"], , display:block; height:200px; width:200px, /view(forum|topic).php\?[ft]=\d+(&.+)?:\d{3}:\d+/)
-! increase display speed
-forum.release-apk.com##+js(avotoko-fake-gettime-speed, 1000, /^.+view(forum|topic).php\?[ft]=\d+(&.+)?:\d{3}:\d+/)
-! July 10 2021 The site has implemented a new anti-adblock. And others.
-! Prevent new anti-adblock script from loading
-||forum.release-apk.com/ext/*.php?$script,1p
-! bypass checking
-forum.release-apk.com##+js(avotoko-fake-computed-style, .adsbygoogle, , display:block, /view(forum|topic).php\?[ft]=\d+(&.+)?:\d{3}:\d+/)
-forum.release-apk.com##+js(avotoko-fake-element-property, ins[class^="adsbygoogle"]:not([class$="adsbygoogle-noablate"]), dataset:{"adsbygoogleStatus":"done"}, , /^.+view(forum|topic).php\?[ft]=\d+(&.+)?:\d{3}:\d+/)
+! https://github.com/uBlockOrigin/uAssets/issues/14426
+! Update at Wed, 02 Aug 2023 08:22:48 GMT
+! Currently uBO's native scriptlets can solve the issue.
+! block ad network
+||adskeeper.com^$script,domain=forum.release-apk.com
+! Hide top ad placeholder.
+forum.release-apk.com##div[data-phpbb-ads-id]
+! Disable ad display status judgment code.
+forum.release-apk.com##+js(rpnt, script, /\(\n\s+(.|\n)+?\n\s+\)/, true)
+! Disable brute-force time elapsed wait functions.
+forum.release-apk.com##+js(rpnt, script, /\b\w{10}\(\d{4}\)/, true)
 
 ! https://www.reddit.com/r/uBlockOrigin/comments/n71ene/this_website_can_detect_that_i_am_using/
 ! https://thehouseofportable.com/download/?id=351&k=6
