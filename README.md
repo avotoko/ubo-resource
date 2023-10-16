@@ -12,10 +12,18 @@ e.g. `userResourcesLocation unset https://raw.githubusercontent.com/avotoko/ubo-
 ! https://github.com/uBlockOrigin/uAssets/issues/9754
 ! https://github.com/AdguardTeam/AdguardFilters/issues/90634
 ! https://github.com/AdguardTeam/AdGuardExtra/issues/236
-! https://ad-shield.io/en/
 ! https://ygosu.com/
-! https://ppss.kr/
-! uBO built-in filters works at Mon, 18 Apr 2022 09:10:14 GMT
+! Ads appeared in firefox at Mon, 16 Oct 2023 01:18:16 GMT.
+! The following filters do not require avotoko-ubo-resource.txt
+!#if env_firefox
+! Remove ad placeholder at the top of the top page
+ygosu.com###contain > div[style*="height:"]
+! block ad-shield scripts
+/[a-z0-9]{50,}/$script,domain=ygosu.com
+script.min.js$script,xhr,domain=ygosu.com
+! disable removing <style> tag
+ygosu.com##+js(aost, document.getElementsByTagName, loader.min.js)
+!#endif
 
 ! Prevent ad-shield loading alternative ads.
 ! maple.inven.co.kr,ppss.kr,ygosu.com##+js(avotoko-abort-on-mutation, Promise, /attr IMG\.\S+ src old:data:\S+ new:https:(?!.*?loading(_m)?\.gif$).*$/)
