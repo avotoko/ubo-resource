@@ -1,3 +1,5 @@
+## **NOTE: This repository will not be maintained in the future.**  
+
 # uBOXSR: uBlock Origin Experimental Scriptlets Resource
 uBlock Origin scriptlets for anti anti-adblock  
 Tested with firefox and chrome on Windows.
